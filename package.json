@@ -1,0 +1,29 @@
+{
+  "name": "ogg",
+  "description": "NodeJS native binding to libogg",
+  "keywords": [
+    "ogg",
+    "libogg",
+    "encode",
+    "decode",
+    "stream"
+  ],
+  "version": "0.0.0",
+  "author": "Nathan Rajlich <nathan@tootallnate.net> (http://tootallnate.net)",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/TooTallNate/node-ogg.git"
+  },
+  "main": "./index.js",
+  "dependencies": {
+    "bindings": "*",
+    "debug": "*",
+    "readable-stream": "~0.0.3"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "scripts": {
+    "test": "mocha --reporter spec"
+  }
+}

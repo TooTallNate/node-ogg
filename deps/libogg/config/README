@@ -1,0 +1,4 @@
+
+configure with:
+
+  ./configure --enable-static --disable-shared --with-pic
