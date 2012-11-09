@@ -40,6 +40,23 @@ struct pageout_req {
   ogg_sync_state *oy;
   ogg_page *page;
   int serialno;
+  int packets;
+  int rtn;
+  Persistent<Function> callback;
+};
+
+struct pagein_req {
+  uv_work_t req;
+  ogg_stream_state *os;
+  ogg_page *page;
+  int rtn;
+  Persistent<Function> callback;
+};
+
+struct packetout_req {
+  uv_work_t req;
+  ogg_stream_state *os;
+  ogg_packet *packet;
   int rtn;
   Persistent<Function> callback;
 };
@@ -76,7 +93,6 @@ Handle<Value> node_ogg_sync_write (const Arguments& args) {
 void node_ogg_sync_write_async (uv_work_t *req) {
   write_req *wreq = reinterpret_cast<write_req *>(req->data);
   long size = wreq->size;
-  printf("writing %ld bytes\n", size);
   char *buffer = ogg_sync_buffer(wreq->oy, size);
   memcpy(buffer, wreq->buffer, size);
   wreq->rtn = ogg_sync_wrote(wreq->oy, size);
@@ -114,6 +130,7 @@ Handle<Value> node_ogg_sync_pageout (const Arguments& args) {
   req->oy = reinterpret_cast<ogg_sync_state *>(UnwrapPointer(args[0]));
   req->rtn = 0;
   req->serialno = -1;
+  req->packets = -1;
   req->page = reinterpret_cast<ogg_page *>(UnwrapPointer(args[1]));
   req->callback = Persistent<Function>::New(callback);
   req->req.data = req;
@@ -127,6 +144,7 @@ void node_ogg_sync_pageout_async (uv_work_t *req) {
   preq->rtn = ogg_sync_pageout(preq->oy, preq->page);
   if (preq->rtn == 1) {
     preq->serialno = ogg_page_serialno(preq->page);
+    preq->packets = ogg_page_packets(preq->page);
   }
 }
 
@@ -134,14 +152,15 @@ void node_ogg_sync_pageout_after (uv_work_t *req) {
   HandleScope scope;
   pageout_req *preq = reinterpret_cast<pageout_req *>(req->data);
 
-  Handle<Value> argv[2] = {
+  Handle<Value> argv[3] = {
     Integer::New(preq->rtn),
-    Integer::New(preq->serialno)
+    Integer::New(preq->serialno),
+    Integer::New(preq->packets)
   };
 
   TryCatch try_catch;
 
-  preq->callback->Call(Context::GetCurrent()->Global(), 2, argv);
+  preq->callback->Call(Context::GetCurrent()->Global(), 3, argv);
 
   // cleanup
   preq->callback.Dispose();
@@ -152,16 +171,111 @@ void node_ogg_sync_pageout_after (uv_work_t *req) {
   }
 }
 
+
+Handle<Value> node_ogg_stream_init (const Arguments& args) {
+  HandleScope scope;
+  ogg_stream_state *os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
+  int serialno = args[1]->IntegerValue();
+  Handle<Value> rtn = Integer::New(ogg_stream_init(os, serialno));
+  return scope.Close(rtn);
+}
+
+
+/* Writes a `ogg_page` struct into a `ogg_stream_state`. */
+void node_ogg_stream_pagein_async (uv_work_t *);
+void node_ogg_stream_pagein_after (uv_work_t *);
+
+Handle<Value> node_ogg_stream_pagein (const Arguments& args) {
+  HandleScope scope;
+  Local<Function> callback = Local<Function>::Cast(args[2]);
+
+  pagein_req *req = new pagein_req;
+  req->os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
+  req->rtn = 0;
+  req->page = reinterpret_cast<ogg_page *>(UnwrapPointer(args[1]));
+  req->callback = Persistent<Function>::New(callback);
+  req->req.data = req;
+
+  uv_queue_work(uv_default_loop(), &req->req, node_ogg_stream_pagein_async, node_ogg_stream_pagein_after);
+  return Undefined();
+}
+
+void node_ogg_stream_pagein_async (uv_work_t *req) {
+  pagein_req *preq = reinterpret_cast<pagein_req *>(req->data);
+  preq->rtn = ogg_stream_pagein(preq->os, preq->page);
+}
+
+void node_ogg_stream_pagein_after (uv_work_t *req) {
+  HandleScope scope;
+  pagein_req *preq = reinterpret_cast<pagein_req *>(req->data);
+  Handle<Value> argv[1] = { Integer::New(preq->rtn) };
+
+  TryCatch try_catch;
+  preq->callback->Call(Context::GetCurrent()->Global(), 1, argv);
+
+  // cleanup
+  preq->callback.Dispose();
+  delete preq;
+
+  if (try_catch.HasCaught()) FatalException(try_catch);
+}
+
+
+/* Reads a `ogg_packet` struct from a `ogg_stream_state`. */
+void node_ogg_stream_packetout_async (uv_work_t *);
+void node_ogg_stream_packetout_after (uv_work_t *);
+
+Handle<Value> node_ogg_stream_packetout (const Arguments& args) {
+  HandleScope scope;
+  Local<Function> callback = Local<Function>::Cast(args[2]);
+
+  packetout_req *req = new packetout_req;
+  req->os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
+  req->rtn = 0;
+  req->packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[1]));
+  req->callback = Persistent<Function>::New(callback);
+  req->req.data = req;
+
+  uv_queue_work(uv_default_loop(), &req->req, node_ogg_stream_packetout_async, node_ogg_stream_packetout_after);
+  return Undefined();
+}
+
+void node_ogg_stream_packetout_async (uv_work_t *req) {
+  packetout_req *preq = reinterpret_cast<packetout_req *>(req->data);
+  preq->rtn = ogg_stream_packetout(preq->os, preq->packet);
+}
+
+void node_ogg_stream_packetout_after (uv_work_t *req) {
+  HandleScope scope;
+  packetout_req *preq = reinterpret_cast<packetout_req *>(req->data);
+  Handle<Value> argv[1] = { Integer::New(preq->rtn) };
+
+  TryCatch try_catch;
+  preq->callback->Call(Context::GetCurrent()->Global(), 1, argv);
+
+  // cleanup
+  preq->callback.Dispose();
+  delete preq;
+
+  if (try_catch.HasCaught()) FatalException(try_catch);
+}
+
+
 void Initialize(Handle<Object> target) {
   HandleScope scope;
 
   target->Set(String::NewSymbol("sizeof_ogg_sync_state"), Integer::New(sizeof(ogg_sync_state)));
   target->Set(String::NewSymbol("sizeof_ogg_stream_state"), Integer::New(sizeof(ogg_stream_state)));
   target->Set(String::NewSymbol("sizeof_ogg_page"), Integer::New(sizeof(ogg_page)));
+  target->Set(String::NewSymbol("sizeof_ogg_packet"), Integer::New(sizeof(ogg_packet)));
 
   NODE_SET_METHOD(target, "ogg_sync_init", node_ogg_sync_init);
   NODE_SET_METHOD(target, "ogg_sync_write", node_ogg_sync_write);
   NODE_SET_METHOD(target, "ogg_sync_pageout", node_ogg_sync_pageout);
+
+  NODE_SET_METHOD(target, "ogg_stream_init", node_ogg_stream_init);
+  NODE_SET_METHOD(target, "ogg_stream_pagein", node_ogg_stream_pagein);
+  NODE_SET_METHOD(target, "ogg_stream_packetout", node_ogg_stream_packetout);
 }
 
 } // nodeogg namespace
