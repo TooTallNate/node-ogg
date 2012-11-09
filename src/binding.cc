@@ -261,6 +261,14 @@ void node_ogg_stream_packetout_after (uv_work_t *req) {
 }
 
 
+Handle<Value> node_ogg_packet_packetno (const Arguments& args) {
+  HandleScope scope;
+  ogg_packet *p = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
+  Handle<Value> rtn = Number::New(p->packetno);
+  return scope.Close(rtn);
+}
+
+
 void Initialize(Handle<Object> target) {
   HandleScope scope;
 
@@ -276,6 +284,8 @@ void Initialize(Handle<Object> target) {
   NODE_SET_METHOD(target, "ogg_stream_init", node_ogg_stream_init);
   NODE_SET_METHOD(target, "ogg_stream_pagein", node_ogg_stream_pagein);
   NODE_SET_METHOD(target, "ogg_stream_packetout", node_ogg_stream_packetout);
+
+  NODE_SET_METHOD(target, "ogg_packet_packetno", node_ogg_packet_packetno);
 }
 
 } // nodeogg namespace
