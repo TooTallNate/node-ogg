@@ -1,7 +1,7 @@
 {
   'targets': [
     {
-      'target_name': 'binding',
+      'target_name': 'ogg',
       'sources': [
         'src/binding.cc',
       ],

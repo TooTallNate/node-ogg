@@ -290,4 +290,4 @@ void Initialize(Handle<Object> target) {
 
 } // nodeogg namespace
 
-NODE_MODULE(binding, nodeogg::Initialize);
+NODE_MODULE(ogg, nodeogg::Initialize);
