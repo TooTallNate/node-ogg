@@ -47,8 +47,8 @@
 
   'targets': [
     {
-      'target_name': 'ogg',
-      'product_prefix': 'lib',
+      'target_name': 'libogg',
+      'product_prefix': '',
       'type': 'static_library',
       'sources': [
         'src/framing.c',
@@ -75,7 +75,7 @@
     {
       'target_name': 'test',
       'type': 'executable',
-      'dependencies': [ 'ogg' ],
+      'dependencies': [ 'libogg' ],
       'sources': [ 'test.c' ]
     },
   ]
