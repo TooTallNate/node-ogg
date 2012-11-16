@@ -25,7 +25,7 @@
           # libogg symbols get re-exported
           'msvs_settings': {
             'VCLinkerTool': {
-              'ModuleDefinitionFile': 'deps/libogg/win32/ogg.def',
+              'ModuleDefinitionFile': '<(module_root_dir)\\deps\\libogg\\win32\\ogg.def',
             },
           },
         }],
