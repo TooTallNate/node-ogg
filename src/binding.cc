@@ -261,19 +261,16 @@ void node_ogg_stream_packetout_after (uv_work_t *req) {
 }
 
 
-Handle<Value> node_ogg_packet_packetno (const Arguments& args) {
+Handle<Value> node_ogg_packet_info (const Arguments& args) {
   HandleScope scope;
   ogg_packet *p = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
-  Handle<Value> rtn = Number::New(p->packetno);
-  return scope.Close(rtn);
-}
-
-
-Handle<Value> node_ogg_packet_bytes (const Arguments& args) {
-  HandleScope scope;
-  ogg_packet *p = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
-  Handle<Value> rtn = Number::New(p->bytes);
-  return scope.Close(rtn);
+  Local<Object> o = Object::New();
+  o->Set(String::NewSymbol("bytes"), Number::New(p->bytes));
+  o->Set(String::NewSymbol("b_o_s"), Number::New(p->b_o_s));
+  o->Set(String::NewSymbol("e_o_s"), Number::New(p->e_o_s));
+  o->Set(String::NewSymbol("granulepos"), Number::New(p->granulepos));
+  o->Set(String::NewSymbol("packetno"), Number::New(p->packetno));
+  return scope.Close(o);
 }
 
 
@@ -293,8 +290,7 @@ void Initialize(Handle<Object> target) {
   NODE_SET_METHOD(target, "ogg_stream_pagein", node_ogg_stream_pagein);
   NODE_SET_METHOD(target, "ogg_stream_packetout", node_ogg_stream_packetout);
 
-  NODE_SET_METHOD(target, "ogg_packet_packetno", node_ogg_packet_packetno);
-  NODE_SET_METHOD(target, "ogg_packet_bytes", node_ogg_packet_bytes);
+  NODE_SET_METHOD(target, "ogg_packet_info", node_ogg_packet_info);
 }
 
 } // nodeogg namespace
