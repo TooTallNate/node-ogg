@@ -269,6 +269,14 @@ Handle<Value> node_ogg_packet_packetno (const Arguments& args) {
 }
 
 
+Handle<Value> node_ogg_packet_bytes (const Arguments& args) {
+  HandleScope scope;
+  ogg_packet *p = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
+  Handle<Value> rtn = Number::New(p->bytes);
+  return scope.Close(rtn);
+}
+
+
 void Initialize(Handle<Object> target) {
   HandleScope scope;
 
@@ -286,6 +294,7 @@ void Initialize(Handle<Object> target) {
   NODE_SET_METHOD(target, "ogg_stream_packetout", node_ogg_stream_packetout);
 
   NODE_SET_METHOD(target, "ogg_packet_packetno", node_ogg_packet_packetno);
+  NODE_SET_METHOD(target, "ogg_packet_bytes", node_ogg_packet_bytes);
 }
 
 } // nodeogg namespace
