@@ -277,10 +277,14 @@ Handle<Value> node_ogg_packet_info (const Arguments& args) {
 void Initialize(Handle<Object> target) {
   HandleScope scope;
 
-  target->Set(String::NewSymbol("sizeof_ogg_sync_state"), Integer::New(sizeof(ogg_sync_state)));
-  target->Set(String::NewSymbol("sizeof_ogg_stream_state"), Integer::New(sizeof(ogg_stream_state)));
-  target->Set(String::NewSymbol("sizeof_ogg_page"), Integer::New(sizeof(ogg_page)));
-  target->Set(String::NewSymbol("sizeof_ogg_packet"), Integer::New(sizeof(ogg_packet)));
+  /* sizeof's */
+#define SIZEOF(value) \
+  target->Set(String::NewSymbol("sizeof_" #value), Integer::New(sizeof(value)), \
+      static_cast<PropertyAttribute>(ReadOnly|DontDelete))
+  SIZEOF(ogg_sync_state);
+  SIZEOF(ogg_stream_state);
+  SIZEOF(ogg_page);
+  SIZEOF(ogg_packet);
 
   NODE_SET_METHOD(target, "ogg_sync_init", node_ogg_sync_init);
   NODE_SET_METHOD(target, "ogg_sync_write", node_ogg_sync_write);
