@@ -205,29 +205,31 @@ void node_ogg_stream_packetout_async (uv_work_t *req) {
 void node_ogg_stream_packetout_after (uv_work_t *req) {
   HandleScope scope;
   packetout_req *preq = reinterpret_cast<packetout_req *>(req->data);
-  Handle<Value> argv[1] = { Integer::New(preq->rtn) };
+  ogg_packet *p = preq->packet;
+  Handle<Value> argv[6];
+  argv[0] = Integer::New(preq->rtn);
+  if (preq->rtn == 1) {
+    argv[1] = Number::New(p->bytes);
+    argv[2] = Number::New(p->b_o_s);
+    argv[3] = Number::New(p->e_o_s);
+    argv[4] = Number::New(p->granulepos);
+    argv[5] = Number::New(p->packetno);
+  } else {
+    argv[1] = Null();
+    argv[2] = Null();
+    argv[3] = Null();
+    argv[4] = Null();
+    argv[5] = Null();
+  }
 
   TryCatch try_catch;
-  preq->callback->Call(Context::GetCurrent()->Global(), 1, argv);
+  preq->callback->Call(Context::GetCurrent()->Global(), 6, argv);
 
   // cleanup
   preq->callback.Dispose();
   delete preq;
 
   if (try_catch.HasCaught()) FatalException(try_catch);
-}
-
-
-Handle<Value> node_ogg_packet_info (const Arguments& args) {
-  HandleScope scope;
-  ogg_packet *p = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
-  Local<Object> o = Object::New();
-  o->Set(String::NewSymbol("bytes"), Number::New(p->bytes));
-  o->Set(String::NewSymbol("b_o_s"), Number::New(p->b_o_s));
-  o->Set(String::NewSymbol("e_o_s"), Number::New(p->e_o_s));
-  o->Set(String::NewSymbol("granulepos"), Number::New(p->granulepos));
-  o->Set(String::NewSymbol("packetno"), Number::New(p->packetno));
-  return scope.Close(o);
 }
 
 
@@ -251,7 +253,6 @@ void Initialize(Handle<Object> target) {
   NODE_SET_METHOD(target, "ogg_stream_pagein", node_ogg_stream_pagein);
   NODE_SET_METHOD(target, "ogg_stream_packetout", node_ogg_stream_packetout);
 
-  NODE_SET_METHOD(target, "ogg_packet_info", node_ogg_packet_info);
 }
 
 } // nodeogg namespace
