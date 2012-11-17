@@ -19,47 +19,13 @@
 #include <string.h>
 
 #include "node_pointer.h"
+#include "binding.h"
 #include "ogg/ogg.h"
 
 using namespace v8;
 using namespace node;
 
 namespace nodeogg {
-
-struct write_req {
-  uv_work_t req;
-  ogg_sync_state *oy;
-  char *buffer;
-  long size;
-  int rtn;
-  Persistent<Function> callback;
-};
-
-struct pageout_req {
-  uv_work_t req;
-  ogg_sync_state *oy;
-  ogg_page *page;
-  int serialno;
-  int packets;
-  int rtn;
-  Persistent<Function> callback;
-};
-
-struct pagein_req {
-  uv_work_t req;
-  ogg_stream_state *os;
-  ogg_page *page;
-  int rtn;
-  Persistent<Function> callback;
-};
-
-struct packetout_req {
-  uv_work_t req;
-  ogg_stream_state *os;
-  ogg_packet *packet;
-  int rtn;
-  Persistent<Function> callback;
-};
 
 Handle<Value> node_ogg_sync_init (const Arguments& args) {
   HandleScope scope;
@@ -71,8 +37,6 @@ Handle<Value> node_ogg_sync_init (const Arguments& args) {
 /* combination of "ogg_sync_buffer", "memcpy", and "ogg_sync_wrote" on the thread
  * pool.
  */
-void node_ogg_sync_write_async (uv_work_t *);
-void node_ogg_sync_write_after (uv_work_t *);
 
 Handle<Value> node_ogg_sync_write (const Arguments& args) {
   HandleScope scope;
@@ -117,10 +81,7 @@ void node_ogg_sync_write_after (uv_work_t *req) {
   }
 }
 
-/* Reads out an `ogg_page` struct.
- */
-void node_ogg_sync_pageout_async (uv_work_t *);
-void node_ogg_sync_pageout_after (uv_work_t *);
+/* Reads out an `ogg_page` struct. */
 
 Handle<Value> node_ogg_sync_pageout (const Arguments& args) {
   HandleScope scope;
@@ -182,8 +143,6 @@ Handle<Value> node_ogg_stream_init (const Arguments& args) {
 
 
 /* Writes a `ogg_page` struct into a `ogg_stream_state`. */
-void node_ogg_stream_pagein_async (uv_work_t *);
-void node_ogg_stream_pagein_after (uv_work_t *);
 
 Handle<Value> node_ogg_stream_pagein (const Arguments& args) {
   HandleScope scope;
@@ -222,8 +181,6 @@ void node_ogg_stream_pagein_after (uv_work_t *req) {
 
 
 /* Reads a `ogg_packet` struct from a `ogg_stream_state`. */
-void node_ogg_stream_packetout_async (uv_work_t *);
-void node_ogg_stream_packetout_after (uv_work_t *);
 
 Handle<Value> node_ogg_stream_packetout (const Arguments& args) {
   HandleScope scope;
