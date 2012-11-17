@@ -3,10 +3,10 @@ node-ogg
 ### NodeJS native binding to libogg
 
 This module provides a Writable stream interface for decoding `ogg` files, and a
-Readable stream for encoding `ogg`files. `libogg` only provides the interfaces for
-multiplexing the various streams embedding into an ogg file (and vice versa),
-therefore this module must be used in conjunction with a `node-ogg` compatible
-stream module, like `node-vorbis`, `node-theora`, or `node-flac`.
+Readable stream for encoding `ogg` files. `libogg` only provides the interfaces
+for multiplexing the various streams embedding into an ogg file (and vice versa),
+therefore this module is intended to be used in conjunction with a
+`node-ogg`-compatible stream module, like `node-vorbis` and `node-theora`.
 
 
 Installation
@@ -25,37 +25,56 @@ $ npm install ogg
 Example
 -------
 
-Here's an example of using the `Decoder` class with a dummy OGG `StreamDecoder`
-that simply `console.log()`s information about each "page" emitted from each OGG
+Here's an example of using the `Decoder` class and simply listening for the raw
+events and `console.log()`s information about each "packet" emitted from each ogg
 stream:
 
 ``` javascript
+var fs = require('fs');
 var ogg = require('ogg');
 var file = __dirname + '/Hydrate-Kenny_Beltrey.ogg';
 
 var decoder = new ogg.Decoder();
 decoder.on('stream', function (stream) {
-  console.log(stream.serialno);
-  stream.on('page', function (page, done) {
-    console.log(page.bytes);
+  console.log('new "stream":', stream.serialno);
+
+  // emitted upon the first page of the stream
+  stream.on('bof', function () {
+    console.log('got "bof":', stream.serialno);
+  });
+
+  // emitted for each `ogg_packet` instance in the stream.
+  // note that this is an *asynchronous* event!
+  stream.on('packet', function (packet, done) {
+    console.log('got "packet":', packet.packetno);
     done();
   });
+
+  // emitted after the last page of the stream
+  stream.on('eof', function () {
+    console.log('got "eof":', stream.serialno);
+  });
 });
+
+// pipe the ogg file to the Decoder
+fs.createReadStream(file).pipe(decoder);
 ```
 
 See the `examples` directory for some more example code.
+
 
 API
 ---
 
 ### Decoder class
 
-The `Decoder` class is a `Writable` stream that accepts an OGG file written to
-it, and emits "stream" events when a new stream is encountered, which you _must_
-listen for and attach an OGG `StreamDecoder` instance to, like `node-vorbis` for
-a stream containing Vorbis audio data.
+The `Decoder` class is a `Writable` stream that accepts an ogg file written to
+it, and emits "stream" events when a new stream is encountered. The `OggStream`
+isntance received emits "packet" events for each `ogg_packet` encountered, which
+you are then expected to pass along to a ogg stream decoder.
 
 ### Encoder class
 
-The `Encoder` class is a `Readable` stream where you attach OGG `StreamEncoder`
-instances to the stream, and it outputs a valid OGG file.
+The `Encoder` class is a `Readable` stream where you are given `OggStream`
+instances and are required to write `ogg_packet`s received from an ogg stream
+encoder to them in order to create a valid ogg file.
