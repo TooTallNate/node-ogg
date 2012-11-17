@@ -1,5 +1,7 @@
 #include "ogg/ogg.h"
 
+namespace nodeogg {
+
 struct write_req {
   uv_work_t req;
   ogg_sync_state *oy;
@@ -46,3 +48,5 @@ void node_ogg_stream_pagein_after (uv_work_t *);
 
 void node_ogg_stream_packetout_async (uv_work_t *);
 void node_ogg_stream_packetout_after (uv_work_t *);
+
+} // nodeogg namespace
