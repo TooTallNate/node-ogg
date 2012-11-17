@@ -61,7 +61,7 @@ describe('Decoder', function () {
       input.pipe(decoder);
     });
 
-    it('should get 1761486570 and 252396615 as stream serial numbers', function (done) {
+    it('should get the expected stream serial numbers', function (done) {
       var decoder = new Decoder();
       var input = fs.createReadStream(fixture);
       var serials = [ 1761486570, 252396615 ];
@@ -72,6 +72,23 @@ describe('Decoder', function () {
       });
       decoder.on('finish', function () {
         assert.deepEqual(serials, seen);
+        done();
+      });
+      input.pipe(decoder);
+    });
+
+    it('should get the expected number of "packet" events for each stream', function (done) {
+      var decoder = new Decoder();
+      var input = fs.createReadStream(fixture);
+      var expected = { 1761486570: 3, 252396615: 134 };
+      var got = { 1761486570: 0, 252396615: 0 };
+      decoder.on('stream', function (stream) {
+        stream.on('packet', function () {
+          got[stream.serialno]++;
+        });
+      });
+      decoder.on('finish', function () {
+        assert.deepEqual(expected, got);
         done();
       });
       input.pipe(decoder);
