@@ -38,7 +38,7 @@ var decoder = new ogg.Decoder();
 decoder.on('stream', function (stream) {
   console.log('new "stream":', stream.serialno);
 
-  // emitted upon the first page of the stream
+  // emitted upon the first packet of the stream
   stream.on('bof', function () {
     console.log('got "bof":', stream.serialno);
   });
@@ -50,7 +50,7 @@ decoder.on('stream', function (stream) {
     done();
   });
 
-  // emitted after the last page of the stream
+  // emitted after the last packet of the stream
   stream.on('eof', function () {
     console.log('got "eof":', stream.serialno);
   });
