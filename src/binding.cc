@@ -18,6 +18,7 @@
 #include <node.h>
 #include <string.h>
 
+#include "node_buffer.h"
 #include "node_pointer.h"
 #include "binding.h"
 #include "ogg/ogg.h"
@@ -232,6 +233,22 @@ void node_ogg_stream_packetout_after (uv_work_t *req) {
   if (try_catch.HasCaught()) FatalException(try_catch);
 }
 
+Handle<Value> node_ogg_packet_create (const Arguments& args) {
+  HandleScope scope;
+  Buffer *b = Buffer::New(sizeof(ogg_packet));
+  ogg_packet *p = reinterpret_cast<ogg_packet *>(Buffer::Data(b));
+  Local<Object> o = args[0]->ToObject();
+  Local<Object> buf = o->Get(String::NewSymbol("data"))->ToObject();
+  p->packet = reinterpret_cast<unsigned char *>(UnwrapPointer(buf));
+  p->bytes = Buffer::Length(buf);
+  p->b_o_s = o->Get(String::NewSymbol("b_o_s"))->IntegerValue();
+  p->e_o_s = o->Get(String::NewSymbol("e_o_s"))->IntegerValue();
+  p->granulepos = o->Get(String::NewSymbol("granulepos"))->IntegerValue();
+  p->packetno = o->Get(String::NewSymbol("packetno"))->IntegerValue();
+
+  return scope.Close(b->handle_);
+}
+
 
 void Initialize(Handle<Object> target) {
   HandleScope scope;
@@ -252,6 +269,9 @@ void Initialize(Handle<Object> target) {
   NODE_SET_METHOD(target, "ogg_stream_init", node_ogg_stream_init);
   NODE_SET_METHOD(target, "ogg_stream_pagein", node_ogg_stream_pagein);
   NODE_SET_METHOD(target, "ogg_stream_packetout", node_ogg_stream_packetout);
+
+  /* for Encoder testing purposes... */
+  NODE_SET_METHOD(target, "ogg_packet_create", node_ogg_packet_create);
 
 }
 
