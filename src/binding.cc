@@ -182,7 +182,6 @@ void node_ogg_stream_pagein_after (uv_work_t *req) {
 
 
 /* Reads a `ogg_packet` struct from a `ogg_stream_state`. */
-
 Handle<Value> node_ogg_stream_packetout (const Arguments& args) {
   HandleScope scope;
   Local<Function> callback = Local<Function>::Cast(args[2]);
@@ -233,6 +232,46 @@ void node_ogg_stream_packetout_after (uv_work_t *req) {
   if (try_catch.HasCaught()) FatalException(try_catch);
 }
 
+
+/* Writes a `ogg_packet` struct to a `ogg_stream_state`. */
+Handle<Value> node_ogg_stream_packetin (const Arguments& args) {
+  HandleScope scope;
+  Local<Function> callback = Local<Function>::Cast(args[2]);
+
+  /* we can reuse packetout_req since the same args are used */
+  packetout_req *req = new packetout_req;
+  req->os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
+  req->rtn = 0;
+  req->packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[1]));
+  req->callback = Persistent<Function>::New(callback);
+  req->req.data = req;
+
+  uv_queue_work(uv_default_loop(), &req->req, node_ogg_stream_packetin_async, node_ogg_stream_packetin_after);
+  return Undefined();
+}
+
+void node_ogg_stream_packetin_async (uv_work_t *req) {
+  packetout_req *preq = reinterpret_cast<packetout_req *>(req->data);
+  preq->rtn = ogg_stream_packetin(preq->os, preq->packet);
+}
+
+void node_ogg_stream_packetin_after (uv_work_t *req) {
+  HandleScope scope;
+  packetout_req *preq = reinterpret_cast<packetout_req *>(req->data);
+
+  Handle<Value> argv[1] = { Integer::New(preq->rtn) };
+
+  TryCatch try_catch;
+  preq->callback->Call(Context::GetCurrent()->Global(), 1, argv);
+
+  // cleanup
+  preq->callback.Dispose();
+  delete preq;
+
+  if (try_catch.HasCaught()) FatalException(try_catch);
+}
+
+
 Handle<Value> node_ogg_packet_create (const Arguments& args) {
   HandleScope scope;
   Buffer *b = Buffer::New(sizeof(ogg_packet));
@@ -272,6 +311,7 @@ void Initialize(Handle<Object> target) {
   NODE_SET_METHOD(target, "ogg_stream_init", node_ogg_stream_init);
   NODE_SET_METHOD(target, "ogg_stream_pagein", node_ogg_stream_pagein);
   NODE_SET_METHOD(target, "ogg_stream_packetout", node_ogg_stream_packetout);
+  NODE_SET_METHOD(target, "ogg_stream_packetin", node_ogg_stream_packetin);
 
   /* for Encoder testing purposes... */
   NODE_SET_METHOD(target, "ogg_packet_create", node_ogg_packet_create);
