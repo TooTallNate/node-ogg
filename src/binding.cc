@@ -238,8 +238,7 @@ Handle<Value> node_ogg_stream_packetin (const Arguments& args) {
   HandleScope scope;
   Local<Function> callback = Local<Function>::Cast(args[2]);
 
-  /* we can reuse packetout_req since the same args are used */
-  packetout_req *req = new packetout_req;
+  packetin_req *req = new packetin_req;
   req->os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
   req->rtn = 0;
   req->packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[1]));
@@ -251,13 +250,13 @@ Handle<Value> node_ogg_stream_packetin (const Arguments& args) {
 }
 
 void node_ogg_stream_packetin_async (uv_work_t *req) {
-  packetout_req *preq = reinterpret_cast<packetout_req *>(req->data);
+  packetin_req *preq = reinterpret_cast<packetin_req *>(req->data);
   preq->rtn = ogg_stream_packetin(preq->os, preq->packet);
 }
 
 void node_ogg_stream_packetin_after (uv_work_t *req) {
   HandleScope scope;
-  packetout_req *preq = reinterpret_cast<packetout_req *>(req->data);
+  packetin_req *preq = reinterpret_cast<packetin_req *>(req->data);
 
   Handle<Value> argv[1] = { Integer::New(preq->rtn) };
 

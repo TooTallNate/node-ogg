@@ -37,6 +37,8 @@ struct packetout_req {
   v8::Persistent<v8::Function> callback;
 };
 
+typedef struct packetout_req packetin_req;
+
 /* decoding */
 void node_ogg_sync_write_async (uv_work_t *);
 void node_ogg_sync_write_after (uv_work_t *);
