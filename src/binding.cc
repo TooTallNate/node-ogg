@@ -246,6 +246,9 @@ Handle<Value> node_ogg_packet_create (const Arguments& args) {
   p->granulepos = o->Get(String::NewSymbol("granulepos"))->IntegerValue();
   p->packetno = o->Get(String::NewSymbol("packetno"))->IntegerValue();
 
+  /* save a ref to the Object so that the "data" buffer doesn't get GC'd */
+  b->handle_->Set(String::NewSymbol("o"), o);
+
   return scope.Close(b->handle_);
 }
 
