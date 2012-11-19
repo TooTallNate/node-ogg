@@ -29,6 +29,8 @@ struct pagein_req {
   v8::Persistent<v8::Function> callback;
 };
 
+typedef struct pagein_req pageout_stream_req;
+
 struct packetout_req {
   uv_work_t req;
   ogg_stream_state *os;
@@ -55,5 +57,11 @@ void node_ogg_stream_packetout_after (uv_work_t *);
 /* encoding */
 void node_ogg_stream_packetin_async (uv_work_t *);
 void node_ogg_stream_packetin_after (uv_work_t *);
+
+void node_ogg_stream_pageout_async (uv_work_t *);
+void node_ogg_stream_pageout_after (uv_work_t *);
+
+void node_ogg_stream_flush_async (uv_work_t *);
+void node_ogg_stream_flush_after (uv_work_t *);
 
 } // nodeogg namespace
