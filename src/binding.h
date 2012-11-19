@@ -39,6 +39,13 @@ struct packetout_req {
   v8::Persistent<v8::Function> callback;
 };
 
+struct page_buf_req {
+  uv_work_t req;
+  ogg_page *page;
+  unsigned char *buffer;
+  v8::Persistent<v8::Function> callback;
+};
+
 typedef struct packetout_req packetin_req;
 
 /* decoding */
@@ -63,5 +70,9 @@ void node_ogg_stream_pageout_after (uv_work_t *);
 
 void node_ogg_stream_flush_async (uv_work_t *);
 void node_ogg_stream_flush_after (uv_work_t *);
+
+/* custom */
+void node_ogg_page_to_buffer_async (uv_work_t *);
+void node_ogg_page_to_buffer_after (uv_work_t *);
 
 } // nodeogg namespace

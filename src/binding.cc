@@ -301,10 +301,20 @@ void node_ogg_stream_pageout_after (uv_work_t *req) {
   HandleScope scope;
   pageout_stream_req *preq = reinterpret_cast<pageout_stream_req *>(req->data);
 
-  Handle<Value> argv[1] = { Integer::New(preq->rtn) };
+  Handle<Value> argv[3];
+  argv[0] = Integer::New(preq->rtn);
+  if (preq->rtn == 0) {
+    /* need more data */
+    argv[1] = Null();
+    argv[2] = Null();
+  } else {
+    /* got a page! */
+    argv[1] = Number::New(preq->page->header_len);
+    argv[2] = Number::New(preq->page->body_len);
+  }
 
   TryCatch try_catch;
-  preq->callback->Call(Context::GetCurrent()->Global(), 1, argv);
+  preq->callback->Call(Context::GetCurrent()->Global(), 3, argv);
 
   // cleanup
   preq->callback.Dispose();
@@ -312,6 +322,45 @@ void node_ogg_stream_pageout_after (uv_work_t *req) {
 
   if (try_catch.HasCaught()) FatalException(try_catch);
 }
+
+
+/* Converts an `ogg_page` instance to a node Buffer instance */
+Handle<Value> node_ogg_page_to_buffer (const Arguments& args) {
+  HandleScope scope;
+  Local<Function> callback = Local<Function>::Cast(args[2]);
+
+  page_buf_req *req = new page_buf_req;
+  req->page = reinterpret_cast<ogg_page *>(UnwrapPointer(args[0]));
+  req->buffer = reinterpret_cast<unsigned char *>(UnwrapPointer(args[1]));
+  req->callback = Persistent<Function>::New(callback);
+  req->req.data = req;
+
+  uv_queue_work(uv_default_loop(), &req->req, node_ogg_page_to_buffer_async, node_ogg_page_to_buffer_after);
+  return Undefined();
+}
+
+void node_ogg_page_to_buffer_async (uv_work_t *req) {
+  page_buf_req *preq = reinterpret_cast<page_buf_req *>(req->data);
+  ogg_page *op = preq->page;
+  memcpy(preq->buffer, op->header, op->header_len);
+  memcpy(preq->buffer + op->header_len, op->body, op->body_len);
+}
+
+void node_ogg_page_to_buffer_after (uv_work_t *req) {
+  HandleScope scope;
+  page_buf_req *preq = reinterpret_cast<page_buf_req *>(req->data);
+
+  Handle<Value> argv[0];
+  TryCatch try_catch;
+  preq->callback->Call(Context::GetCurrent()->Global(), 0, argv);
+
+  // cleanup
+  preq->callback.Dispose();
+  delete preq;
+
+  if (try_catch.HasCaught()) FatalException(try_catch);
+}
+
 
 Handle<Value> node_ogg_stream_eos (const Arguments& args) {
   HandleScope scope;
@@ -362,6 +411,9 @@ void Initialize(Handle<Object> target) {
   NODE_SET_METHOD(target, "ogg_stream_packetin", node_ogg_stream_packetin);
   NODE_SET_METHOD(target, "ogg_stream_pageout", node_ogg_stream_pageout);
   NODE_SET_METHOD(target, "ogg_stream_eos", node_ogg_stream_eos);
+
+  /* custom function */
+  NODE_SET_METHOD(target, "ogg_page_to_buffer", node_ogg_page_to_buffer);
 
   /* for Encoder testing purposes... */
   NODE_SET_METHOD(target, "ogg_packet_create", node_ogg_packet_create);
