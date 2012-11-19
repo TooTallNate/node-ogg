@@ -14,6 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * libogg API reference:
+ * http://xiph.org/ogg/doc/libogg/reference.html
+ */
+
 #include <v8.h>
 #include <node.h>
 #include <string.h>
