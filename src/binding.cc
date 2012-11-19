@@ -276,6 +276,13 @@ void node_ogg_stream_packetin_after (uv_work_t *req) {
 }
 
 
+Handle<Value> node_ogg_stream_eos (const Arguments& args) {
+  HandleScope scope;
+  ogg_stream_state *os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
+  return scope.Close(Integer::New(ogg_stream_eos(os)));
+}
+
+
 Handle<Value> node_ogg_packet_create (const Arguments& args) {
   HandleScope scope;
   Buffer *b = Buffer::New(sizeof(ogg_packet));
@@ -316,6 +323,7 @@ void Initialize(Handle<Object> target) {
   NODE_SET_METHOD(target, "ogg_stream_pagein", node_ogg_stream_pagein);
   NODE_SET_METHOD(target, "ogg_stream_packetout", node_ogg_stream_packetout);
   NODE_SET_METHOD(target, "ogg_stream_packetin", node_ogg_stream_packetin);
+  NODE_SET_METHOD(target, "ogg_stream_eos", node_ogg_stream_eos);
 
   /* for Encoder testing purposes... */
   NODE_SET_METHOD(target, "ogg_packet_create", node_ogg_packet_create);
