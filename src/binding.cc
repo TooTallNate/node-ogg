@@ -324,6 +324,29 @@ void node_ogg_stream_pageout_after (uv_work_t *req) {
 }
 
 
+/* Forces an `ogg_page` struct to be flushed from an `ogg_stream_state`. */
+Handle<Value> node_ogg_stream_flush (const Arguments& args) {
+  HandleScope scope;
+  Local<Function> callback = Local<Function>::Cast(args[2]);
+
+  pageout_stream_req *req = new pageout_stream_req;
+  req->os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
+  req->rtn = 0;
+  req->page = reinterpret_cast<ogg_page *>(UnwrapPointer(args[1]));
+  req->callback = Persistent<Function>::New(callback);
+  req->req.data = req;
+
+  /* reusing the pageout_after() function since the logic is identical... */
+  uv_queue_work(uv_default_loop(), &req->req, node_ogg_stream_flush_async, node_ogg_stream_pageout_after);
+  return Undefined();
+}
+
+void node_ogg_stream_flush_async (uv_work_t *req) {
+  pageout_stream_req *preq = reinterpret_cast<pageout_stream_req *>(req->data);
+  preq->rtn = ogg_stream_flush(preq->os, preq->page);
+}
+
+
 /* Converts an `ogg_page` instance to a node Buffer instance */
 Handle<Value> node_ogg_page_to_buffer (const Arguments& args) {
   HandleScope scope;
@@ -410,6 +433,7 @@ void Initialize(Handle<Object> target) {
   NODE_SET_METHOD(target, "ogg_stream_packetout", node_ogg_stream_packetout);
   NODE_SET_METHOD(target, "ogg_stream_packetin", node_ogg_stream_packetin);
   NODE_SET_METHOD(target, "ogg_stream_pageout", node_ogg_stream_pageout);
+  NODE_SET_METHOD(target, "ogg_stream_flush", node_ogg_stream_flush);
   NODE_SET_METHOD(target, "ogg_stream_eos", node_ogg_stream_eos);
 
   /* custom function */

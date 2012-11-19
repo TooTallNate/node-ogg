@@ -69,7 +69,7 @@ void node_ogg_stream_pageout_async (uv_work_t *);
 void node_ogg_stream_pageout_after (uv_work_t *);
 
 void node_ogg_stream_flush_async (uv_work_t *);
-void node_ogg_stream_flush_after (uv_work_t *);
+/* flush_after() is really just pageout_after() */
 
 /* custom */
 void node_ogg_page_to_buffer_async (uv_work_t *);
