@@ -17,9 +17,8 @@ describe('Encoder', function () {
 
   it('should emit an "end" event after the "e_o_s" packet', function (done) {
     var e = new Encoder();
-    //e.on('readable', function () {});
-    // uhhhh.. this shouldn't be necessary @isaac, wtf...
-    e.pipe(new ogg.Decoder());
+    // flow...
+    e.resume();
 
     e.on('end', done);
     var s = e.stream();
@@ -38,9 +37,8 @@ describe('Encoder', function () {
 
   it('should emit an "end" event after *all* "e_o_s" packets', function (done) {
     var e = new Encoder();
-    //e.on('readable', function () {});
-    // uhhhh.. this shouldn't be necessary @isaac, wtf...
-    e.pipe(new ogg.Decoder());
+    // flow...
+    e.resume();
 
     e.on('end', done);
     [ 'foo', 'bar', 'baz' ].forEach(function (data) {
