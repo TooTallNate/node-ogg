@@ -21,7 +21,8 @@
     "readable-stream": "~0.0.3"
   },
   "devDependencies": {
-    "mocha": "*"
+    "mocha": "*",
+    "ogg-packet": "1"
   },
   "scripts": {
     "test": "mocha --reporter spec"
