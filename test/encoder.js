@@ -17,7 +17,7 @@ describe('Encoder', function () {
 
   describe('with one .stream()', function () {
 
-    it('should emit an "end" event after the "e_o_s" packet', function (done) {
+    it('should emit an "end" event after one "e_o_s" packet', function (done) {
       var e = new Encoder();
       // flow...
       e.resume();
@@ -48,7 +48,7 @@ describe('Encoder', function () {
 
   describe('with three .stream()s', function () {
 
-    it('should emit an "end" event after *all* "e_o_s" packets', function (done) {
+    it('should emit an "end" event after three "e_o_s" packets', function (done) {
       var e = new Encoder();
       // flow...
       e.resume();
