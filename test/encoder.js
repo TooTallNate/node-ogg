@@ -3,8 +3,8 @@ var fs = require('fs');
 var path = require('path');
 var ogg = require('../');
 var Encoder = ogg.Encoder;
-var Packet = require('../lib/binding').ogg_packet_create;
 var assert = require('assert');
+var ogg_packet = require('ogg-packet');
 var fixtures = path.resolve(__dirname, 'fixtures');
 
 describe('Encoder', function () {
@@ -24,11 +24,18 @@ describe('Encoder', function () {
 
       e.on('end', done);
       var s = e.stream();
-      s.packetin(Packet({
-        data: Buffer('test'),
-        packetno: 0,
-        e_o_s: 1
-      }), function (err) {
+
+      // create `ogg_packet`
+      var data = new Buffer('test');
+      var packet = new ogg_packet();
+      packet.packet = data;
+      packet.bytes = data.length;
+      packet.b_o_s = 1;
+      packet.e_o_s = 1;
+      packet.granulepos = 0;
+      packet.packetno = 0;
+
+      s.packetin(packet.buffer, function (err) {
         if (err) return done(err);
         s.pageout(function (err) {
           if (err) return done(err);
@@ -47,13 +54,20 @@ describe('Encoder', function () {
       e.resume();
 
       e.on('end', done);
-      [ 'foo', 'bar', 'baz' ].forEach(function (data) {
+      [ 'foo', 'bar', 'baz' ].forEach(function (str) {
         var s = e.stream();
-        s.packetin(Packet({
-          data: Buffer(data),
-          packetno: 0,
-          e_o_s: 1
-        }), function (err) {
+
+        // create `ogg_packet`
+        var data = new Buffer(str);
+        var packet = new ogg_packet();
+        packet.packet = data;
+        packet.bytes = data.length;
+        packet.b_o_s = 1;
+        packet.e_o_s = 1;
+        packet.granulepos = 0;
+        packet.packetno = 0;
+
+        s.packetin(packet.buffer, function (err) {
           if (err) return done(err);
           s.pageout(function (err) {
             if (err) return done(err);

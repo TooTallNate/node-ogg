@@ -392,26 +392,6 @@ Handle<Value> node_ogg_stream_eos (const Arguments& args) {
 }
 
 
-Handle<Value> node_ogg_packet_create (const Arguments& args) {
-  HandleScope scope;
-  Buffer *b = Buffer::New(sizeof(ogg_packet));
-  ogg_packet *p = reinterpret_cast<ogg_packet *>(Buffer::Data(b));
-  Local<Object> o = args[0]->ToObject();
-  Local<Object> buf = o->Get(String::NewSymbol("data"))->ToObject();
-  p->packet = reinterpret_cast<unsigned char *>(UnwrapPointer(buf));
-  p->bytes = Buffer::Length(buf);
-  p->b_o_s = o->Get(String::NewSymbol("b_o_s"))->IntegerValue();
-  p->e_o_s = o->Get(String::NewSymbol("e_o_s"))->IntegerValue();
-  p->granulepos = o->Get(String::NewSymbol("granulepos"))->IntegerValue();
-  p->packetno = o->Get(String::NewSymbol("packetno"))->IntegerValue();
-
-  /* save a ref to the Object so that the "data" buffer doesn't get GC'd */
-  b->handle_->Set(String::NewSymbol("o"), o);
-
-  return scope.Close(b->handle_);
-}
-
-
 void Initialize(Handle<Object> target) {
   HandleScope scope;
 
@@ -438,9 +418,6 @@ void Initialize(Handle<Object> target) {
 
   /* custom function */
   NODE_SET_METHOD(target, "ogg_page_to_buffer", node_ogg_page_to_buffer);
-
-  /* for Encoder testing purposes... */
-  NODE_SET_METHOD(target, "ogg_packet_create", node_ogg_packet_create);
 
 }
 
