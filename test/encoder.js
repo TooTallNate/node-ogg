@@ -15,36 +15,17 @@ describe('Encoder', function () {
     assert(s instanceof ogg.OggStream);
   });
 
-  it('should emit an "end" event after the "e_o_s" packet', function (done) {
-    var e = new Encoder();
-    // flow...
-    e.resume();
+  describe('with one .stream()', function () {
 
-    e.on('end', done);
-    var s = e.stream();
-    s.packetin(Packet({
-      data: Buffer('test'),
-      packetno: 0,
-      e_o_s: 1
-    }), function (err) {
-      if (err) return done(err);
-      s.pageout(function (err) {
-        if (err) return done(err);
-        // wait for "end" event...
-      });
-    });
-  });
+    it('should emit an "end" event after the "e_o_s" packet', function (done) {
+      var e = new Encoder();
+      // flow...
+      e.resume();
 
-  it('should emit an "end" event after *all* "e_o_s" packets', function (done) {
-    var e = new Encoder();
-    // flow...
-    e.resume();
-
-    e.on('end', done);
-    [ 'foo', 'bar', 'baz' ].forEach(function (data) {
+      e.on('end', done);
       var s = e.stream();
       s.packetin(Packet({
-        data: Buffer(data),
+        data: Buffer('test'),
         packetno: 0,
         e_o_s: 1
       }), function (err) {
@@ -55,6 +36,33 @@ describe('Encoder', function () {
         });
       });
     });
+
+  });
+
+  describe('with three .stream()s', function () {
+
+    it('should emit an "end" event after *all* "e_o_s" packets', function (done) {
+      var e = new Encoder();
+      // flow...
+      e.resume();
+
+      e.on('end', done);
+      [ 'foo', 'bar', 'baz' ].forEach(function (data) {
+        var s = e.stream();
+        s.packetin(Packet({
+          data: Buffer(data),
+          packetno: 0,
+          e_o_s: 1
+        }), function (err) {
+          if (err) return done(err);
+          s.pageout(function (err) {
+            if (err) return done(err);
+            // wait for "end" event...
+          });
+        });
+      });
+    });
+
   });
 
 });
