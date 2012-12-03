@@ -22,6 +22,8 @@ Simply compile and install `node-ogg` using `npm`:
 $ npm install ogg
 ```
 
+__NOTE:__ `node-ogg` requires to be built using `node-gyp` v0.8.0 or newer!
+
 
 Example
 -------
