@@ -11,7 +11,7 @@ describe('OggStream', function () {
     assert.equal(serialno, stream.serialno);
   });
 
-  it('should create an OggStream instane with a random serial number', function () {
+  it('should create an OggStream instance with a random serial number', function () {
     var stream = new OggStream();
     assert(stream instanceof OggStream);
     assert(isFinite(stream.serialno));
