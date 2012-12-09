@@ -44,6 +44,34 @@ describe('Encoder', function () {
       });
     });
 
+    it('should support passing in an `ogg_struct` instance directly', function (done) {
+      var e = new Encoder();
+      // flow...
+      e.resume();
+
+      e.on('end', done);
+      var s = e.stream();
+
+      // create `ogg_packet`
+      var data = new Buffer('test');
+      var packet = new ogg_packet();
+      packet.packet = data;
+      packet.bytes = data.length;
+      packet.b_o_s = 1;
+      packet.e_o_s = 1;
+      packet.granulepos = 0;
+      packet.packetno = 0;
+
+      // pass in the `ogg_packet` instance directly
+      s.packetin(packet, function (err) {
+        if (err) return done(err);
+        s.pageout(function (err) {
+          if (err) return done(err);
+          // wait for "end" event...
+        });
+      });
+    });
+
   });
 
   describe('with three .stream()s', function () {
