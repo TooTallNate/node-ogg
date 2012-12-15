@@ -56,7 +56,10 @@ Handle<Value> node_ogg_sync_write (const Arguments& args) {
   req->callback = Persistent<Function>::New(callback);
   req->req.data = req;
 
-  uv_queue_work(uv_default_loop(), &req->req, node_ogg_sync_write_async, node_ogg_sync_write_after);
+  uv_queue_work(uv_default_loop(),
+                &req->req,
+                node_ogg_sync_write_async,
+                (uv_after_work_cb)node_ogg_sync_write_after);
   return Undefined();
 }
 
@@ -102,7 +105,10 @@ Handle<Value> node_ogg_sync_pageout (const Arguments& args) {
   req->callback = Persistent<Function>::New(callback);
   req->req.data = req;
 
-  uv_queue_work(uv_default_loop(), &req->req, node_ogg_sync_pageout_async, node_ogg_sync_pageout_after);
+  uv_queue_work(uv_default_loop(),
+                &req->req,
+                node_ogg_sync_pageout_async,
+                (uv_after_work_cb)node_ogg_sync_pageout_after);
   return Undefined();
 }
 
@@ -161,7 +167,10 @@ Handle<Value> node_ogg_stream_pagein (const Arguments& args) {
   req->callback = Persistent<Function>::New(callback);
   req->req.data = req;
 
-  uv_queue_work(uv_default_loop(), &req->req, node_ogg_stream_pagein_async, node_ogg_stream_pagein_after);
+  uv_queue_work(uv_default_loop(),
+                &req->req,
+                node_ogg_stream_pagein_async,
+                (uv_after_work_cb)node_ogg_stream_pagein_after);
   return Undefined();
 }
 
@@ -198,7 +207,10 @@ Handle<Value> node_ogg_stream_packetout (const Arguments& args) {
   req->callback = Persistent<Function>::New(callback);
   req->req.data = req;
 
-  uv_queue_work(uv_default_loop(), &req->req, node_ogg_stream_packetout_async, node_ogg_stream_packetout_after);
+  uv_queue_work(uv_default_loop(),
+                &req->req,
+                node_ogg_stream_packetout_async,
+                (uv_after_work_cb)node_ogg_stream_packetout_after);
   return Undefined();
 }
 
@@ -250,7 +262,10 @@ Handle<Value> node_ogg_stream_packetin (const Arguments& args) {
   req->callback = Persistent<Function>::New(callback);
   req->req.data = req;
 
-  uv_queue_work(uv_default_loop(), &req->req, node_ogg_stream_packetin_async, node_ogg_stream_packetin_after);
+  uv_queue_work(uv_default_loop(),
+                &req->req,
+                node_ogg_stream_packetin_async,
+                (uv_after_work_cb)node_ogg_stream_packetin_after);
   return Undefined();
 }
 
@@ -288,7 +303,10 @@ Handle<Value> node_ogg_stream_pageout (const Arguments& args) {
   req->callback = Persistent<Function>::New(callback);
   req->req.data = req;
 
-  uv_queue_work(uv_default_loop(), &req->req, node_ogg_stream_pageout_async, node_ogg_stream_pageout_after);
+  uv_queue_work(uv_default_loop(),
+                &req->req,
+                node_ogg_stream_pageout_async,
+                (uv_after_work_cb)node_ogg_stream_pageout_after);
   return Undefined();
 }
 
@@ -337,7 +355,10 @@ Handle<Value> node_ogg_stream_flush (const Arguments& args) {
   req->req.data = req;
 
   /* reusing the pageout_after() function since the logic is identical... */
-  uv_queue_work(uv_default_loop(), &req->req, node_ogg_stream_flush_async, node_ogg_stream_pageout_after);
+  uv_queue_work(uv_default_loop(),
+                &req->req,
+                node_ogg_stream_flush_async,
+                (uv_after_work_cb)node_ogg_stream_pageout_after);
   return Undefined();
 }
 
@@ -358,7 +379,10 @@ Handle<Value> node_ogg_page_to_buffer (const Arguments& args) {
   req->callback = Persistent<Function>::New(callback);
   req->req.data = req;
 
-  uv_queue_work(uv_default_loop(), &req->req, node_ogg_page_to_buffer_async, node_ogg_page_to_buffer_after);
+  uv_queue_work(uv_default_loop(),
+                &req->req,
+                node_ogg_page_to_buffer_async,
+                (uv_after_work_cb)node_ogg_page_to_buffer_after);
   return Undefined();
 }
 
