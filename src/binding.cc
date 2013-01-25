@@ -397,9 +397,8 @@ void node_ogg_page_to_buffer_after (uv_work_t *req) {
   HandleScope scope;
   page_buf_req *preq = reinterpret_cast<page_buf_req *>(req->data);
 
-  Handle<Value> argv[0];
   TryCatch try_catch;
-  preq->callback->Call(Context::GetCurrent()->Global(), 0, argv);
+  preq->callback->Call(Context::GetCurrent()->Global(), 0, NULL);
 
   // cleanup
   preq->callback.Dispose();
