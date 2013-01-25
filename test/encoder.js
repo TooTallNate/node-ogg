@@ -35,7 +35,7 @@ describe('Encoder', function () {
       packet.granulepos = 0;
       packet.packetno = 0;
 
-      s.packetin(packet.buffer, function (err) {
+      s.packetin(packet, function (err) {
         if (err) return done(err);
         s.pageout(function (err) {
           if (err) return done(err);
@@ -95,7 +95,7 @@ describe('Encoder', function () {
         packet.granulepos = 0;
         packet.packetno = 0;
 
-        s.packetin(packet.buffer, function (err) {
+        s.packetin(packet, function (err) {
           if (err) return done(err);
           s.pageout(function (err) {
             if (err) return done(err);
