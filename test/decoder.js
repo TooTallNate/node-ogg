@@ -15,8 +15,9 @@ describe('Decoder', function () {
       var input = fs.createReadStream(fixture);
       var count = 0;
       var expected = 2;
-      decoder.on('stream', function () {
+      decoder.on('stream', function (stream) {
         count++;
+        stream.resume();
       });
       decoder.on('finish', function () {
         assert.equal(expected, count);
@@ -35,6 +36,7 @@ describe('Decoder', function () {
         stream.on('bos', function () {
           bosCount++;
         });
+        stream.resume();
       });
       decoder.on('finish', function () {
         assert.equal(streamCount, bosCount);
@@ -53,6 +55,7 @@ describe('Decoder', function () {
         stream.on('eos', function () {
           eosCount++;
         });
+        stream.resume();
       });
       decoder.on('finish', function () {
         assert.equal(streamCount, eosCount);
@@ -69,6 +72,7 @@ describe('Decoder', function () {
       decoder.on('stream', function (stream) {
         assert.notEqual(-1, serials.indexOf(stream.serialno));
         seen.push(stream.serialno);
+        stream.resume();
       });
       decoder.on('finish', function () {
         assert.deepEqual(serials, seen);
