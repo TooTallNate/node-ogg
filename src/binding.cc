@@ -408,6 +408,19 @@ void node_ogg_page_to_buffer_after (uv_work_t *req) {
 }
 
 
+/* Replaces the `ogg_packet` "packet" pointer with a Node.js buffer instance */
+Handle<Value> node_ogg_packet_replace_buffer (const Arguments& args) {
+  HandleScope scope;
+
+  ogg_packet *packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
+  unsigned char *buf = reinterpret_cast<unsigned char *>(UnwrapPointer(args[1]));
+  memcpy(buf, packet->packet, packet->bytes);
+  packet->packet = buf;
+
+  return Undefined();
+}
+
+
 Handle<Value> node_ogg_stream_eos (const Arguments& args) {
   HandleScope scope;
   ogg_stream_state *os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
@@ -441,6 +454,7 @@ void Initialize(Handle<Object> target) {
 
   /* custom function */
   NODE_SET_METHOD(target, "ogg_page_to_buffer", node_ogg_page_to_buffer);
+  NODE_SET_METHOD(target, "ogg_packet_replace_buffer", node_ogg_packet_replace_buffer);
 
 }
 
