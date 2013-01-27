@@ -98,6 +98,25 @@ describe('Decoder', function () {
       input.pipe(decoder);
     });
 
+    it('should get 1 "end" event for each "stream"', function (done) {
+      var decoder = new Decoder();
+      var input = fs.createReadStream(fixture);
+      var streamCount = 0;
+      var endCount = 0;
+      decoder.on('stream', function (stream) {
+        streamCount++;
+        stream.on('end', function () {
+          endCount++;
+        });
+        stream.resume();
+      });
+      decoder.on('finish', function () {
+        assert.equal(streamCount, endCount);
+        done();
+      });
+      input.pipe(decoder);
+    });
+
   });
 
 });
