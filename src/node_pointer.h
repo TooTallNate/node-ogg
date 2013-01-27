@@ -37,7 +37,11 @@ inline static v8::Handle<v8::Value> WrapPointer(void *ptr) {
  */
 
 inline static char * UnwrapPointer(v8::Handle<v8::Value> buffer, int64_t offset) {
-  return node::Buffer::Data(buffer.As<v8::Object>()) + offset;
+  if (node::Buffer::HasInstance(buffer)) {
+    return node::Buffer::Data(buffer.As<v8::Object>()) + offset;
+  } else {
+    return NULL;
+  }
 }
 
 /*
@@ -46,5 +50,19 @@ inline static char * UnwrapPointer(v8::Handle<v8::Value> buffer, int64_t offset)
 
 
 inline static char * UnwrapPointer(v8::Handle<v8::Value> buffer) {
-  return node::Buffer::Data(buffer.As<v8::Object>());
+  if (node::Buffer::HasInstance(buffer)) {
+    return node::Buffer::Data(buffer.As<v8::Object>());
+  } else {
+    return NULL;
+  }
+}
+
+/**
+ * Templated version of UnwrapPointer that does a reinterpret_cast() on the
+ * pointer before returning it.
+ */
+
+template <typename Type>
+inline static Type UnwrapPointer(v8::Handle<v8::Value> buffer) {
+  return reinterpret_cast<Type>(UnwrapPointer(buffer));
 }
