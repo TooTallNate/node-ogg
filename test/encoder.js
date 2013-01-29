@@ -1,7 +1,7 @@
 
 var fs = require('fs');
-var path = require('path');
 var ogg = require('../');
+var path = require('path');
 var Encoder = ogg.Encoder;
 var assert = require('assert');
 var ogg_packet = require('ogg-packet');
@@ -9,10 +9,13 @@ var fixtures = path.resolve(__dirname, 'fixtures');
 
 describe('Encoder', function () {
 
-  it('should return an OggStream instance for .stream()', function () {
+  it('should return an EncoderStream instance for .stream()', function () {
     var e = new Encoder();
     var s = e.stream();
-    assert(s instanceof ogg.OggStream);
+    assert.equal('function', typeof s.write);
+    assert.equal('function', typeof s.packetin);
+    assert.equal('function', typeof s.pageout);
+    assert.equal('function', typeof s.flush);
   });
 
   describe('with one .stream()', function () {
@@ -52,7 +55,7 @@ describe('Encoder', function () {
       e.on('end', done);
       var s = e.stream();
 
-      // create `ogg_packet`
+      // create an `ogg_packet` struct
       var data = new Buffer('test');
       var packet = new ogg_packet();
       packet.packet = data;
