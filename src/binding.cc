@@ -396,13 +396,6 @@ Handle<Value> node_ogg_packet_replace_buffer (const Arguments& args) {
 }
 
 
-Handle<Value> node_ogg_stream_eos (const Arguments& args) {
-  HandleScope scope;
-  ogg_stream_state *os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
-  return scope.Close(Integer::New(ogg_stream_eos(os)));
-}
-
-
 void Initialize(Handle<Object> target) {
   HandleScope scope;
 
@@ -425,7 +418,6 @@ void Initialize(Handle<Object> target) {
   NODE_SET_METHOD(target, "ogg_stream_packetin", node_ogg_stream_packetin);
   NODE_SET_METHOD(target, "ogg_stream_pageout", node_ogg_stream_pageout);
   NODE_SET_METHOD(target, "ogg_stream_flush", node_ogg_stream_flush);
-  NODE_SET_METHOD(target, "ogg_stream_eos", node_ogg_stream_eos);
 
   /* custom functions */
   NODE_SET_METHOD(target, "ogg_page_to_buffer", node_ogg_page_to_buffer);
