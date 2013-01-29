@@ -319,20 +319,22 @@ void node_ogg_stream_pageout_after (uv_work_t *req) {
   HandleScope scope;
   pageout_stream_req *preq = reinterpret_cast<pageout_stream_req *>(req->data);
 
-  Handle<Value> argv[3];
+  Handle<Value> argv[4];
   argv[0] = Integer::New(preq->rtn);
   if (preq->rtn == 0) {
     /* need more data */
     argv[1] = Null();
     argv[2] = Null();
+    argv[3] = Null();
   } else {
     /* got a page! */
     argv[1] = Number::New(preq->page->header_len);
     argv[2] = Number::New(preq->page->body_len);
+    argv[3] = Integer::New(ogg_page_eos(preq->page));
   }
 
   TryCatch try_catch;
-  preq->callback->Call(Context::GetCurrent()->Global(), 3, argv);
+  preq->callback->Call(Context::GetCurrent()->Global(), 4, argv);
 
   // cleanup
   preq->callback.Dispose();
