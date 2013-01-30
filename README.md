@@ -78,7 +78,8 @@ instances and are required to write `ogg_packet`s received from an ogg stream
 encoder to them in order to create a valid ogg file.
 
 
-### OGG Stream Decoders/Encoders
+OGG Stream Decoders/Encoders
+----------------------------
 
 Here's a list of known ogg stream decoders and encoders.
 Please send pull requests for additional modules if you write one.
