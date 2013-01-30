@@ -383,6 +383,14 @@ Handle<Value> node_ogg_page_to_buffer (const Arguments& args) {
 }
 
 
+/* packet->bytes */
+Handle<Value> node_ogg_packet_bytes (const Arguments& args) {
+  HandleScope scope;
+  ogg_packet *packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
+  return scope.Close(Number::New(packet->bytes));
+}
+
+
 /* Replaces the `ogg_packet` "packet" pointer with a Node.js buffer instance */
 Handle<Value> node_ogg_packet_replace_buffer (const Arguments& args) {
   HandleScope scope;
@@ -421,6 +429,8 @@ void Initialize(Handle<Object> target) {
 
   /* custom functions */
   NODE_SET_METHOD(target, "ogg_page_to_buffer", node_ogg_page_to_buffer);
+
+  NODE_SET_METHOD(target, "ogg_packet_bytes", node_ogg_packet_bytes);
   NODE_SET_METHOD(target, "ogg_packet_replace_buffer", node_ogg_packet_replace_buffer);
 
 }
