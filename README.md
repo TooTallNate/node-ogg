@@ -81,7 +81,7 @@ encoder to them in order to create a valid ogg file.
 OGG Stream Decoders/Encoders
 ----------------------------
 
-Here's a list of known ogg stream decoders and encoders.
+Here's a list of known ogg stream decoders and encoders that are compatible with / depend on `node-ogg`.
 Please send pull requests for additional modules if you write one.
 
 | **Module**                       | **Decoder?** | **Encoder?**
