@@ -86,6 +86,6 @@ Please send pull requests for additional modules if you write one.
 
 | **Module**                       | **Decoder?** | **Encoder?**
 |:--------------------------------:|:------------:|:------------:
-|   [`node-voribs`][node-vorbis]   |      ✓       |      ✓
+|   [`node-vorbis`][node-vorbis]   |      ✓       |      ✓
 
 [node-vorbis]: https://github.com/TooTallNate/node-vorbis
