@@ -12,6 +12,7 @@ describe('Encoder', function () {
   it('should return an EncoderStream instance for .stream()', function () {
     var e = new Encoder();
     var s = e.stream();
+    assert.equal(s.constructor.name, 'EncoderStream');
     assert.equal('function', typeof s.write);
     assert.equal('function', typeof s.packetin);
     assert.equal('function', typeof s.pageout);
