@@ -1,3 +1,10 @@
+1.1.0 / 2013-03-07
+==================
+
+ - update for node v0.9.12 streams2 API changes
+ - encoder: add `Encoder#use(stream)` function
+ - decoder-stream: add once() and removeListener() support for "packet" event
+
 1.0.0 / 2013-02-16
 ==================
 
