@@ -1,3 +1,14 @@
+
+1.1.2 / 2014-07-28
+==================
+
+ * add appveyor.yml file for Windows testing
+ * README: use svg for Travis badge
+ * package: update all the dependency versions
+ * package: bump "readable-stream" to v1
+ * travis: don't test node v0.9, test node v0.10, v0.11
+ * fixed to works on 0.8.x (#5, @arunoda)
+
 1.1.1 / 2013-03-07
 ==================
 
