@@ -127,7 +127,7 @@ NAN_METHOD(node_ogg_sync_pageout) {
 NAN_METHOD(node_ogg_stream_init) {
   NanScope();
   ogg_stream_state *os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
-  int serialno = args[1]->IntegerValue();
+  int serialno = static_cast<int>(args[1]->IntegerValue());
   NanReturnValue(NanNew<Integer>(ogg_stream_init(os, serialno)));
 }
 
@@ -183,8 +183,8 @@ class OggStreamPacketoutWorker : public NanAsyncWorker {
       argv[1] = NanNew<Number>(packet->bytes);
       argv[2] = NanNew<Number>(packet->b_o_s);
       argv[3] = NanNew<Number>(packet->e_o_s);
-      argv[4] = NanNew<Number>(packet->granulepos);
-      argv[5] = NanNew<Number>(packet->packetno);
+      argv[4] = NanNew<Number>(static_cast<double>(packet->granulepos));
+      argv[5] = NanNew<Number>(static_cast<double>(packet->packetno));
     } else {
       argv[1] = NanNull();
       argv[2] = NanNull();
@@ -381,7 +381,7 @@ NAN_METHOD(node_ogg_packet_e_o_s) {
 NAN_METHOD(node_ogg_packet_granulepos) {
   NanScope();
   ogg_packet *packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
-  NanReturnValue(NanNew<Number>(packet->granulepos));
+  NanReturnValue(NanNew<Number>(static_cast<double>(packet->granulepos)));
 }
 
 
@@ -389,7 +389,7 @@ NAN_METHOD(node_ogg_packet_granulepos) {
 NAN_METHOD(node_ogg_packet_packetno) {
   NanScope();
   ogg_packet *packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
-  NanReturnValue(NanNew<Number>(packet->packetno));
+  NanReturnValue(NanNew<Number>(static_cast<double>(packet->packetno)));
 }
 
 
