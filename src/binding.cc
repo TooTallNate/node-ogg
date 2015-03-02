@@ -25,7 +25,7 @@
 
 #include "node_buffer.h"
 #include "node_pointer.h"
-#include "binding.h"
+
 #include "ogg/ogg.h"
 
 using namespace v8;
@@ -407,12 +407,11 @@ NAN_METHOD(node_ogg_packet_replace_buffer) {
 
 
 void Initialize(Handle<Object> exports) {
-  Isolate* isolate = Isolate::GetCurrent();
-  HandleScope scope(isolate);
+  NanScope();
 
   /* sizeof's */
 #define SIZEOF(value) \
-  exports->ForceSet(String::NewFromUtf8(isolate, "sizeof_" #value, String::kInternalizedString), Integer::New(isolate, sizeof(value)), \
+  exports->ForceSet(NanNew<String>("sizeof_" #value), NanNew<Integer>(static_cast<int32_t>(sizeof(value))), \
       static_cast<PropertyAttribute>(ReadOnly|DontDelete))
   SIZEOF(ogg_sync_state);
   SIZEOF(ogg_stream_state);

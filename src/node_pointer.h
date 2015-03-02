@@ -4,6 +4,7 @@
  */
 
 #include "v8.h"
+#include <nan.h>
 #include "node_buffer.h"
 
 /*
@@ -20,7 +21,7 @@ inline static void wrap_pointer_cb(char *data, void *hint) {
 
 inline static v8::Handle<v8::Value> WrapPointer(void *ptr, size_t length) {
   void *user_data = NULL;
-  return node::Buffer::New((char *)ptr, length, wrap_pointer_cb, user_data);
+  return NanNewBufferHandle((char *)ptr, length, wrap_pointer_cb, user_data);
 }
 
 /*
