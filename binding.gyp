@@ -5,6 +5,7 @@
       'product_extension': 'node',
       'defines': [ 'BUILDING_NODE_EXTENSION' ],
       'target_name': 'ogg',
+      'include_dirs': [ "<!(node -e \"require('nan')\")" ],
       'sources': [
         'src/binding.cc',
       ],

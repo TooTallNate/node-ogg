@@ -19,11 +19,8 @@
  * http://xiph.org/ogg/doc/libogg/reference.html
  */
 
-#include <v8.h>
 #include <node.h>
-// I'm unclear if we're supposed to include uv.h directly now or if we're just
-// not supposed to touch it?
-#include <uv.h>
+#include <nan.h>
 #include <string.h>
 
 #include "node_buffer.h"
@@ -36,490 +33,415 @@ using namespace node;
 
 namespace nodeogg {
 
-void node_ogg_sync_init (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
+NAN_METHOD(node_ogg_sync_init) {
+  NanScope();
   ogg_sync_state *oy = reinterpret_cast<ogg_sync_state *>(UnwrapPointer(args[0]));
-  Local<Value> rtn = Integer::New(isolate, ogg_sync_init(oy));
-  args.GetReturnValue().Set(rtn);
+  Local<Value> rtn = NanNew<Integer>(ogg_sync_init(oy));
+  NanReturnValue(rtn);
 }
 
 /* combination of "ogg_sync_buffer", "memcpy", and "ogg_sync_wrote" on the thread
  * pool.
  */
-
-void node_ogg_sync_write (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
-  Local<Function> callback = Local<Function>::Cast(args[3]);
-
-  write_req *req = new write_req;
-  req->oy = reinterpret_cast<ogg_sync_state *>(UnwrapPointer(args[0]));
-  req->buffer = reinterpret_cast<char *>(UnwrapPointer(args[1]));
-  req->size = static_cast<long>(args[2]->NumberValue());
-  req->rtn = 0;
-  req->callback.Reset(isolate, callback);
-  req->req.data = req;
-
-  uv_queue_work(uv_default_loop(),
-                &req->req,
-                node_ogg_sync_write_async,
-                (uv_after_work_cb)node_ogg_sync_write_after);
-  args.GetReturnValue().SetUndefined();
-}
-
-void node_ogg_sync_write_async (uv_work_t *req) {
-  write_req *wreq = reinterpret_cast<write_req *>(req->data);
-  long size = wreq->size;
-  char *buffer = ogg_sync_buffer(wreq->oy, size);
-  memcpy(buffer, wreq->buffer, size);
-  wreq->rtn = ogg_sync_wrote(wreq->oy, size);
-}
-
-void node_ogg_sync_write_after (uv_work_t *req) {
-  Isolate* isolate = Isolate::GetCurrent();
-  HandleScope scope(isolate);
-  write_req *wreq = reinterpret_cast<write_req *>(req->data);
-
-  Handle<Value> argv[1] = { Integer::New(isolate, wreq->rtn) };
-
-  TryCatch try_catch;
-
-  Local<Function> callback = Local<Function>::New(isolate, wreq->callback);
-  callback->Call(isolate->GetCurrentContext()->Global(), 1, argv);
-
-  // cleanup
-  wreq->callback.Reset();
-  delete wreq;
-
-  if (try_catch.HasCaught()) {
-    FatalException(try_catch);
+class OggSyncWriteWorker : public NanAsyncWorker {
+ public:
+  OggSyncWriteWorker(ogg_sync_state *oy, char *buffer, long size,
+    NanCallback *callback)
+    : oy(oy), buffer(buffer), size(size), rtn(0), NanAsyncWorker(callback) { }
+  ~OggSyncWriteWorker () { }
+  void Execute() {
+    char *localBuffer = ogg_sync_buffer(oy, size);
+    memcpy(localBuffer, buffer, size);
+    rtn = ogg_sync_wrote(oy, size);
   }
+  void HandleOKCallback () {
+    NanScope();
+
+    Handle<Value> argv[1] = { NanNew<Integer>(rtn) };
+
+    callback->Call(1, argv);
+  }
+ private:
+  ogg_sync_state *oy;
+  char *buffer;
+  long size;
+  int rtn;
+};
+
+NAN_METHOD(node_ogg_sync_write) {
+  NanScope();
+
+  ogg_sync_state *oy = reinterpret_cast<ogg_sync_state *>(UnwrapPointer(args[0]));
+  char *buffer = reinterpret_cast<char *>(UnwrapPointer(args[1]));
+  long size = static_cast<long>(args[2]->NumberValue());
+  NanCallback *callback = new NanCallback(args[3].As<Function>());
+
+  NanAsyncQueueWorker(new OggSyncWriteWorker(oy, buffer, size, callback));
+  NanReturnUndefined();
 }
 
 /* Reads out an `ogg_page` struct. */
-
-void node_ogg_sync_pageout (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
-  Local<Function> callback = Local<Function>::Cast(args[2]);
-
-  pageout_req *req = new pageout_req;
-  req->oy = reinterpret_cast<ogg_sync_state *>(UnwrapPointer(args[0]));
-  req->rtn = 0;
-  req->serialno = -1;
-  req->packets = -1;
-  req->page = reinterpret_cast<ogg_page *>(UnwrapPointer(args[1]));
-  req->callback.Reset(isolate, callback);
-  req->req.data = req;
-
-  uv_queue_work(uv_default_loop(),
-                &req->req,
-                node_ogg_sync_pageout_async,
-                (uv_after_work_cb)node_ogg_sync_pageout_after);
-  args.GetReturnValue().SetUndefined();
-}
-
-void node_ogg_sync_pageout_async (uv_work_t *req) {
-  pageout_req *preq = reinterpret_cast<pageout_req *>(req->data);
-  preq->rtn = ogg_sync_pageout(preq->oy, preq->page);
-  if (preq->rtn == 1) {
-    preq->serialno = ogg_page_serialno(preq->page);
-    preq->packets = ogg_page_packets(preq->page);
+class OggSyncPageoutWorker : public NanAsyncWorker {
+ public:
+  OggSyncPageoutWorker (ogg_sync_state *oy, ogg_page *page, NanCallback *callback)
+    : oy(oy), rtn(0), serialno(-1), packets(-1), page(page), NanAsyncWorker(callback)
+    { }
+  ~OggSyncPageoutWorker () { }
+  void Execute () {
+    rtn = ogg_sync_pageout(oy, page);
+    if (rtn == 1) {
+      serialno = ogg_page_serialno(page);
+      packets = ogg_page_packets(page);
+    }
   }
-}
+  void HandleOKCallback () {
+    NanScope();
 
-void node_ogg_sync_pageout_after (uv_work_t *req) {
-  Isolate* isolate = Isolate::GetCurrent();
-  HandleScope scope(isolate);
-  pageout_req *preq = reinterpret_cast<pageout_req *>(req->data);
+    Handle<Value> argv[3] = {
+      NanNew<Integer>(rtn),
+      NanNew<Integer>(serialno),
+      NanNew<Integer>(packets)
+    };
 
-  Handle<Value> argv[3] = {
-    Integer::New(isolate, preq->rtn),
-    Integer::New(isolate, preq->serialno),
-    Integer::New(isolate, preq->packets)
-  };
-
-  TryCatch try_catch;
-
-  Local<Function> callback = Local<Function>::New(isolate, preq->callback);
-  callback->Call(isolate->GetCurrentContext()->Global(), 3, argv);
-
-  // cleanup
-  preq->callback.Reset();
-  delete preq;
-
-  if (try_catch.HasCaught()) {
-    FatalException(try_catch);
+    callback->Call(3, argv);
   }
+ private:
+  ogg_sync_state *oy;
+  ogg_page *page;
+  int serialno;
+  int packets;
+  int rtn;
+};
+
+NAN_METHOD(node_ogg_sync_pageout) {
+  NanScope();
+
+  ogg_sync_state *oy = reinterpret_cast<ogg_sync_state *>(UnwrapPointer(args[0]));
+  ogg_page *page = reinterpret_cast<ogg_page *>(UnwrapPointer(args[1]));
+  NanCallback *callback = new NanCallback(args[2].As<Function>());
+
+  NanAsyncQueueWorker(new OggSyncPageoutWorker(oy, page, callback));
+  NanReturnUndefined();
 }
 
-
-void node_ogg_stream_init (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
+NAN_METHOD(node_ogg_stream_init) {
+  NanScope();
   ogg_stream_state *os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
   int serialno = args[1]->IntegerValue();
-  args.GetReturnValue().Set(ogg_stream_init(os, serialno));
+  NanReturnValue(NanNew<Integer>(ogg_stream_init(os, serialno)));
 }
 
 
 /* Writes a `ogg_page` struct into a `ogg_stream_state`. */
+class OggStreamPageinWorker : public NanAsyncWorker {
+ public:
+  OggStreamPageinWorker(ogg_stream_state *os, ogg_page *page, NanCallback *callback)
+    : os(os), page(page), rtn(0), NanAsyncWorker(callback) { }
+  void Execute () {
+    rtn = ogg_stream_pagein(os, page);
+  }
+  void HandleOKCallback () {
+    NanScope();
 
-void node_ogg_stream_pagein (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
-  Local<Function> callback = Local<Function>::Cast(args[2]);
+    Handle<Value> argv[1] = { NanNew<Integer>(rtn) };
 
-  pagein_req *req = new pagein_req;
-  req->os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
-  req->rtn = 0;
-  req->page = reinterpret_cast<ogg_page *>(UnwrapPointer(args[1]));
-  req->callback.Reset(isolate, callback);
-  req->req.data = req;
+    callback->Call(1, argv);
+  }
+ private:
+  ogg_stream_state *os;
+  ogg_page *page;
+  int rtn;
+};
 
-  uv_queue_work(uv_default_loop(),
-                &req->req,
-                node_ogg_stream_pagein_async,
-                (uv_after_work_cb)node_ogg_stream_pagein_after);
-  args.GetReturnValue().SetUndefined();
-}
+NAN_METHOD(node_ogg_stream_pagein) {
+  NanScope();
 
-void node_ogg_stream_pagein_async (uv_work_t *req) {
-  pagein_req *preq = reinterpret_cast<pagein_req *>(req->data);
-  preq->rtn = ogg_stream_pagein(preq->os, preq->page);
-}
+  ogg_stream_state *os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
+  ogg_page *page = reinterpret_cast<ogg_page *>(UnwrapPointer(args[1]));
+  NanCallback *callback = new NanCallback(args[2].As<Function>());
 
-void node_ogg_stream_pagein_after (uv_work_t *req) {
-  Isolate* isolate = Isolate::GetCurrent();
-  HandleScope scope(isolate);
-  pagein_req *preq = reinterpret_cast<pagein_req *>(req->data);
-  Handle<Value> argv[1] = { Integer::New(isolate, preq->rtn) };
-
-  TryCatch try_catch;
-  Local<Function> callback = Local<Function>::New(isolate, preq->callback);
-  callback->Call(isolate->GetCurrentContext()->Global(), 1, argv);
-
-  // cleanup
-  preq->callback.Reset();
-  delete preq;
-
-  if (try_catch.HasCaught()) FatalException(try_catch);
+  NanAsyncQueueWorker(new OggStreamPageinWorker(os, page, callback));
+  NanReturnUndefined();
 }
 
 
 /* Reads a `ogg_packet` struct from a `ogg_stream_state`. */
-void node_ogg_stream_packetout (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
-  Local<Function> callback = Local<Function>::Cast(args[2]);
-
-  packetout_req *req = new packetout_req;
-  req->os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
-  req->rtn = 0;
-  req->packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[1]));
-  req->callback.Reset(isolate, callback);
-  req->req.data = req;
-
-  uv_queue_work(uv_default_loop(),
-                &req->req,
-                node_ogg_stream_packetout_async,
-                (uv_after_work_cb)node_ogg_stream_packetout_after);
-  args.GetReturnValue().SetUndefined();
-}
-
-void node_ogg_stream_packetout_async (uv_work_t *req) {
-  packetout_req *preq = reinterpret_cast<packetout_req *>(req->data);
-  preq->rtn = ogg_stream_packetout(preq->os, preq->packet);
-}
-
-void node_ogg_stream_packetout_after (uv_work_t *req) {
-  Isolate* isolate = Isolate::GetCurrent();
-  HandleScope scope(isolate);
-  packetout_req *preq = reinterpret_cast<packetout_req *>(req->data);
-  ogg_packet *p = preq->packet;
-  Handle<Value> argv[6];
-  argv[0] = Integer::New(isolate, preq->rtn);
-  if (preq->rtn == 1) {
-    argv[1] = Number::New(isolate, p->bytes);
-    argv[2] = Number::New(isolate, p->b_o_s);
-    argv[3] = Number::New(isolate, p->e_o_s);
-    argv[4] = Number::New(isolate, p->granulepos);
-    argv[5] = Number::New(isolate, p->packetno);
-  } else {
-    argv[1] = Null(isolate);
-    argv[2] = Null(isolate);
-    argv[3] = Null(isolate);
-    argv[4] = Null(isolate);
-    argv[5] = Null(isolate);
+class OggStreamPacketoutWorker : public NanAsyncWorker {
+ public:
+  OggStreamPacketoutWorker (ogg_stream_state *os, ogg_packet *packet, NanCallback *callback)
+    : os(os), packet(packet), rtn(0), NanAsyncWorker(callback) { }
+  ~OggStreamPacketoutWorker () { }
+  void Execute () {
+    rtn = ogg_stream_packetout(os, packet);
   }
+  void HandleOKCallback () {
+    NanScope();
 
-  TryCatch try_catch;
-  Local<Function> callback = Local<Function>::New(isolate, preq->callback);
-  callback->Call(isolate->GetCurrentContext()->Global(), 6, argv);
+    Handle<Value> argv[6];
+    argv[0] = NanNew<Integer>(rtn);
+    if (rtn == 1) {
+      argv[1] = NanNew<Number>(packet->bytes);
+      argv[2] = NanNew<Number>(packet->b_o_s);
+      argv[3] = NanNew<Number>(packet->e_o_s);
+      argv[4] = NanNew<Number>(packet->granulepos);
+      argv[5] = NanNew<Number>(packet->packetno);
+    } else {
+      argv[1] = NanNull();
+      argv[2] = NanNull();
+      argv[3] = NanNull();
+      argv[4] = NanNull();
+      argv[5] = NanNull();
+    }
 
-  // cleanup
-  preq->callback.Reset();
-  delete preq;
+    callback->Call(6, argv);
+  }
+ private:
+  ogg_stream_state *os;
+  ogg_packet *packet;
+  int rtn;
+};
 
-  if (try_catch.HasCaught()) FatalException(try_catch);
+NAN_METHOD(node_ogg_stream_packetout) {
+  NanScope();
+
+  ogg_stream_state *os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
+  ogg_packet *packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[1]));
+  NanCallback *callback = new NanCallback(args[2].As<Function>());
+
+  NanAsyncQueueWorker(new OggStreamPacketoutWorker(os, packet, callback));
+  NanReturnUndefined();
 }
 
 
 /* Writes a `ogg_packet` struct to a `ogg_stream_state`. */
-void node_ogg_stream_packetin (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
-  Local<Function> callback = Local<Function>::Cast(args[2]);
+class OggStreamPacketinWorker : public NanAsyncWorker {
+ public:
+  OggStreamPacketinWorker (ogg_stream_state *os, ogg_packet *packet, NanCallback *callback)
+    : os(os), packet(packet), rtn(0), NanAsyncWorker(callback) { }
+  ~OggStreamPacketinWorker () { }
+  void Execute () {
+    rtn = ogg_stream_packetin(os, packet);
+  }
+  void HandleOKCallback () {
+    NanScope();
 
-  packetin_req *req = new packetin_req;
-  req->os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
-  req->rtn = 0;
-  req->packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[1]));
-  req->callback.Reset(isolate, callback);
-  req->req.data = req;
+    Handle<Value> argv[1] = { NanNew<Integer>(rtn) };
 
-  uv_queue_work(uv_default_loop(),
-                &req->req,
-                node_ogg_stream_packetin_async,
-                (uv_after_work_cb)node_ogg_stream_packetin_after);
-  args.GetReturnValue().SetUndefined();
+    callback->Call(1, argv);
+  }
+ private:
+  ogg_stream_state *os;
+  ogg_packet *packet;
+  int rtn;
+};
+
+NAN_METHOD(node_ogg_stream_packetin) {
+  NanScope();
+
+  ogg_stream_state *os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
+  ogg_packet *packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[1]));
+  NanCallback *callback = new NanCallback(args[2].As<Function>());
+
+  NanAsyncQueueWorker(new OggStreamPacketinWorker(os, packet, callback));
+  NanReturnUndefined();
 }
 
-void node_ogg_stream_packetin_async (uv_work_t *req) {
-  packetin_req *preq = reinterpret_cast<packetin_req *>(req->data);
-  preq->rtn = ogg_stream_packetin(preq->os, preq->packet);
-}
+// Since both StreamPageout and StreamFlush have the same HandleOKCallback,
+// this base class deals with both.
+class StreamWorker : public NanAsyncWorker {
+ public:
+  StreamWorker(ogg_stream_state *os, ogg_page *page, NanCallback *callback)
+      : NanAsyncWorker(callback), os(os), page(page), rtn(0) { }
+  void HandleOKCallback () {
+    NanScope();
 
-void node_ogg_stream_packetin_after (uv_work_t *req) {
-  Isolate* isolate = Isolate::GetCurrent();
-  HandleScope scope(isolate);
-  packetin_req *preq = reinterpret_cast<packetin_req *>(req->data);
+    Handle<Value> argv[4];
+    argv[0] = NanNew<Integer>(rtn);
+    if (rtn == 0) {
+      /* need more data */
+      argv[1] = NanNull();
+      argv[2] = NanNull();
+      argv[3] = NanNull();
+    } else {
+      /* got a page! */
+      argv[1] = NanNew<Number>(page->header_len);
+      argv[2] = NanNew<Number>(page->body_len);
+      argv[3] = NanNew<Integer>(ogg_page_eos(page));
+    }
 
-  Handle<Value> argv[1] = { Integer::New(isolate, preq->rtn) };
+    callback->Call(4, argv);
+  }
+ protected:
+  ogg_stream_state *os;
+  ogg_page *page;
+  int rtn;
+};
 
-  TryCatch try_catch;
-  Local<Function> callback = Local<Function>::New(isolate, preq->callback);
-  callback->Call(isolate->GetCurrentContext()->Global(), 1, argv);
-
-  // cleanup
-  preq->callback.Reset();
-  delete preq;
-
-  if (try_catch.HasCaught()) FatalException(try_catch);
-}
-
+class StreamPageoutWorker : public StreamWorker {
+ public:
+  StreamPageoutWorker(ogg_stream_state *os, ogg_page *page, NanCallback *callback)
+    : StreamWorker(os, page, callback) { }
+  ~StreamPageoutWorker() { }
+  void Execute () {
+    rtn = ogg_stream_pageout(os, page);
+  }
+};
 
 /* Reads out a `ogg_page` struct from an `ogg_stream_state`. */
-void node_ogg_stream_pageout (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
-  Local<Function> callback = Local<Function>::Cast(args[2]);
+NAN_METHOD(node_ogg_stream_pageout) {
+  NanScope();
+  NanCallback *callback = new NanCallback(args[2].As<Function>());
 
-  pageout_stream_req *req = new pageout_stream_req;
-  req->os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
-  req->rtn = 0;
-  req->page = reinterpret_cast<ogg_page *>(UnwrapPointer(args[1]));
-  req->callback.Reset(isolate, callback);
-  req->req.data = req;
-
-  uv_queue_work(uv_default_loop(),
-                &req->req,
-                node_ogg_stream_pageout_async,
-                (uv_after_work_cb)node_ogg_stream_pageout_after);
-  args.GetReturnValue().SetUndefined();
+  NanAsyncQueueWorker(
+    new StreamPageoutWorker(
+      reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0])),
+      reinterpret_cast<ogg_page *>(UnwrapPointer(args[1])),
+      callback));
+  NanReturnUndefined();
 }
 
-void node_ogg_stream_pageout_async (uv_work_t *req) {
-  pageout_stream_req *preq = reinterpret_cast<pageout_stream_req *>(req->data);
-  preq->rtn = ogg_stream_pageout(preq->os, preq->page);
-}
-
-void node_ogg_stream_pageout_after (uv_work_t *req) {
-  Isolate* isolate = Isolate::GetCurrent();
-  HandleScope scope(isolate);
-  pageout_stream_req *preq = reinterpret_cast<pageout_stream_req *>(req->data);
-
-  Handle<Value> argv[4];
-  argv[0] = Integer::New(isolate, preq->rtn);
-  if (preq->rtn == 0) {
-    /* need more data */
-    argv[1] = Null(isolate);
-    argv[2] = Null(isolate);
-    argv[3] = Null(isolate);
-  } else {
-    /* got a page! */
-    argv[1] = Number::New(isolate, preq->page->header_len);
-    argv[2] = Number::New(isolate, preq->page->body_len);
-    argv[3] = Integer::New(isolate, ogg_page_eos(preq->page));
+class StreamFlushWorker : public StreamWorker {
+ public:
+  StreamFlushWorker(ogg_stream_state *os, ogg_page *page, NanCallback *callback)
+       : StreamWorker(os, page, callback) { }
+  ~StreamFlushWorker() { }
+  void Execute () {
+    rtn = ogg_stream_flush(os, page);
   }
-
-  TryCatch try_catch;
-  Local<Function> callback = Local<Function>::New(isolate, preq->callback);
-  callback->Call(isolate->GetCurrentContext()->Global(), 4, argv);
-
-  // cleanup
-  preq->callback.Reset();
-  delete preq;
-
-  if (try_catch.HasCaught()) FatalException(try_catch);
-}
-
+};
 
 /* Forces an `ogg_page` struct to be flushed from an `ogg_stream_state`. */
-void node_ogg_stream_flush (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
-  Local<Function> callback = Local<Function>::Cast(args[2]);
+NAN_METHOD(node_ogg_stream_flush) {
+  NanScope();
+  NanCallback *callback = new NanCallback(args[2].As<Function>());
 
-  pageout_stream_req *req = new pageout_stream_req;
-  req->os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0]));
-  req->rtn = 0;
-  req->page = reinterpret_cast<ogg_page *>(UnwrapPointer(args[1]));
-  req->callback.Reset(isolate, callback);
-  req->req.data = req;
-
-  /* reusing the pageout_after() function since the logic is identical... */
-  uv_queue_work(uv_default_loop(),
-                &req->req,
-                node_ogg_stream_flush_async,
-                (uv_after_work_cb)node_ogg_stream_pageout_after);
-  args.GetReturnValue().SetUndefined();
+  NanAsyncQueueWorker(
+    new StreamFlushWorker(
+      reinterpret_cast<ogg_stream_state *>(UnwrapPointer(args[0])),
+      reinterpret_cast<ogg_page *>(UnwrapPointer(args[1])),
+      callback));
+  NanReturnUndefined();
 }
-
-void node_ogg_stream_flush_async (uv_work_t *req) {
-  pageout_stream_req *preq = reinterpret_cast<pageout_stream_req *>(req->data);
-  preq->rtn = ogg_stream_flush(preq->os, preq->page);
-}
-
 
 /* Converts an `ogg_page` instance to a node Buffer instance */
-void node_ogg_page_to_buffer (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
+NAN_METHOD(node_ogg_page_to_buffer) {
+  NanScope();
 
   ogg_page *op = reinterpret_cast<ogg_page *>(UnwrapPointer(args[0]));
   unsigned char *buf = reinterpret_cast<unsigned char *>(UnwrapPointer(args[1]));
   memcpy(buf, op->header, op->header_len);
   memcpy(buf + op->header_len, op->body, op->body_len);
 
-  args.GetReturnValue().SetUndefined();
+  NanReturnUndefined();
 }
 
 
 /* packet->packet = ... */
-void node_ogg_packet_set_packet (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
+NAN_METHOD(node_ogg_packet_set_packet) {
+  NanScope();
   ogg_packet *packet = UnwrapPointer<ogg_packet *>(args[0]);
   packet->packet = UnwrapPointer<unsigned char *>(args[1]);
-  args.GetReturnValue().SetUndefined();
+  NanReturnUndefined();
 }
 
 
 /* packet->packet */
-void node_ogg_packet_get_packet (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
+NAN_METHOD(node_ogg_packet_get_packet) {
+  NanScope();
   ogg_packet *packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
-  args.GetReturnValue().Set(WrapPointer(packet->packet, packet->bytes));
+  NanReturnValue(WrapPointer(packet->packet, packet->bytes));
 }
 
 
 /* packet->bytes */
-void node_ogg_packet_bytes (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
+NAN_METHOD(node_ogg_packet_bytes) {
+  NanScope();
   ogg_packet *packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
-  args.GetReturnValue().Set(packet->bytes);
+  NanReturnValue(NanNew<Number>(packet->bytes));
 }
 
 
 /* packet->b_o_s */
-void node_ogg_packet_b_o_s (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
+NAN_METHOD(node_ogg_packet_b_o_s) {
+  NanScope();
   ogg_packet *packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
-  args.GetReturnValue().Set(packet->b_o_s);
+  NanReturnValue(NanNew<Number>(packet->b_o_s));
 }
 
 
 /* packet->e_o_s */
-void node_ogg_packet_e_o_s (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
+NAN_METHOD(node_ogg_packet_e_o_s) {
+  NanScope();
   ogg_packet *packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
-  args.GetReturnValue().Set(packet->e_o_s);
+  NanReturnValue(NanNew<Number>(packet->e_o_s));
 }
 
 
 /* packet->granulepos */
-void node_ogg_packet_granulepos (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
+NAN_METHOD(node_ogg_packet_granulepos) {
+  NanScope();
   ogg_packet *packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
-  args.GetReturnValue().Set(static_cast<double>(packet->granulepos));
+  NanReturnValue(NanNew<Number>(packet->granulepos));
 }
 
 
 /* packet->packetno */
-void node_ogg_packet_packetno (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
+NAN_METHOD(node_ogg_packet_packetno) {
+  NanScope();
   ogg_packet *packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
-  args.GetReturnValue().Set(static_cast<double>(packet->packetno));
+  NanReturnValue(NanNew<Number>(packet->packetno));
 }
 
 
 /* Replaces the `ogg_packet` "packet" pointer with a Node.js buffer instance */
-void node_ogg_packet_replace_buffer (const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
+NAN_METHOD(node_ogg_packet_replace_buffer) {
+  NanScope();
 
   ogg_packet *packet = reinterpret_cast<ogg_packet *>(UnwrapPointer(args[0]));
   unsigned char *buf = reinterpret_cast<unsigned char *>(UnwrapPointer(args[1]));
   memcpy(buf, packet->packet, packet->bytes);
   packet->packet = buf;
 
-  args.GetReturnValue().SetUndefined();
+  NanReturnUndefined();
 }
 
 
-void Initialize(Handle<Object> target) {
+void Initialize(Handle<Object> exports) {
   Isolate* isolate = Isolate::GetCurrent();
   HandleScope scope(isolate);
 
   /* sizeof's */
 #define SIZEOF(value) \
-  target->ForceSet(String::NewFromUtf8(isolate, "sizeof_" #value, String::kInternalizedString), Integer::New(isolate, sizeof(value)), \
+  exports->ForceSet(String::NewFromUtf8(isolate, "sizeof_" #value, String::kInternalizedString), Integer::New(isolate, sizeof(value)), \
       static_cast<PropertyAttribute>(ReadOnly|DontDelete))
   SIZEOF(ogg_sync_state);
   SIZEOF(ogg_stream_state);
   SIZEOF(ogg_page);
   SIZEOF(ogg_packet);
 
-  NODE_SET_METHOD(target, "ogg_sync_init", node_ogg_sync_init);
-  NODE_SET_METHOD(target, "ogg_sync_write", node_ogg_sync_write);
-  NODE_SET_METHOD(target, "ogg_sync_pageout", node_ogg_sync_pageout);
+  NODE_SET_METHOD(exports, "ogg_sync_init", node_ogg_sync_init);
+  NODE_SET_METHOD(exports, "ogg_sync_write", node_ogg_sync_write);
+  NODE_SET_METHOD(exports, "ogg_sync_pageout", node_ogg_sync_pageout);
 
-  NODE_SET_METHOD(target, "ogg_stream_init", node_ogg_stream_init);
-  NODE_SET_METHOD(target, "ogg_stream_pagein", node_ogg_stream_pagein);
-  NODE_SET_METHOD(target, "ogg_stream_packetout", node_ogg_stream_packetout);
-  NODE_SET_METHOD(target, "ogg_stream_packetin", node_ogg_stream_packetin);
-  NODE_SET_METHOD(target, "ogg_stream_pageout", node_ogg_stream_pageout);
-  NODE_SET_METHOD(target, "ogg_stream_flush", node_ogg_stream_flush);
+  NODE_SET_METHOD(exports, "ogg_stream_init", node_ogg_stream_init);
+  NODE_SET_METHOD(exports, "ogg_stream_pagein", node_ogg_stream_pagein);
+  NODE_SET_METHOD(exports, "ogg_stream_packetout", node_ogg_stream_packetout);
+  NODE_SET_METHOD(exports, "ogg_stream_packetin", node_ogg_stream_packetin);
+  NODE_SET_METHOD(exports, "ogg_stream_pageout", node_ogg_stream_pageout);
+  NODE_SET_METHOD(exports, "ogg_stream_flush", node_ogg_stream_flush);
 
   /* custom functions */
-  NODE_SET_METHOD(target, "ogg_page_to_buffer", node_ogg_page_to_buffer);
+  NODE_SET_METHOD(exports, "ogg_page_to_buffer", node_ogg_page_to_buffer);
 
-  NODE_SET_METHOD(target, "ogg_packet_set_packet", node_ogg_packet_set_packet);
-  NODE_SET_METHOD(target, "ogg_packet_get_packet", node_ogg_packet_get_packet);
-  NODE_SET_METHOD(target, "ogg_packet_bytes", node_ogg_packet_bytes);
-  NODE_SET_METHOD(target, "ogg_packet_b_o_s", node_ogg_packet_b_o_s);
-  NODE_SET_METHOD(target, "ogg_packet_e_o_s", node_ogg_packet_e_o_s);
-  NODE_SET_METHOD(target, "ogg_packet_granulepos", node_ogg_packet_granulepos);
-  NODE_SET_METHOD(target, "ogg_packet_packetno", node_ogg_packet_packetno);
-  NODE_SET_METHOD(target, "ogg_packet_replace_buffer", node_ogg_packet_replace_buffer);
+  NODE_SET_METHOD(exports, "ogg_packet_set_packet", node_ogg_packet_set_packet);
+  NODE_SET_METHOD(exports, "ogg_packet_get_packet", node_ogg_packet_get_packet);
+  NODE_SET_METHOD(exports, "ogg_packet_bytes", node_ogg_packet_bytes);
+  NODE_SET_METHOD(exports, "ogg_packet_b_o_s", node_ogg_packet_b_o_s);
+  NODE_SET_METHOD(exports, "ogg_packet_e_o_s", node_ogg_packet_e_o_s);
+  NODE_SET_METHOD(exports, "ogg_packet_granulepos", node_ogg_packet_granulepos);
+  NODE_SET_METHOD(exports, "ogg_packet_packetno", node_ogg_packet_packetno);
+  exports->Set(NanNew<String>("ogg_packet_replace_buffer"),
+    NanNew<FunctionTemplate>(node_ogg_packet_replace_buffer)->GetFunction());
 
 }
 
