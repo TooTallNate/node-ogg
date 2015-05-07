@@ -1,4 +1,12 @@
 
+1.2.0 / 2015-05-07
+==================
+
+  * appveyor: don't test node v0.8 or v0.11
+  * travis: don't test node v0.11
+  * add node 0.12 to the CI files
+  * add io.js/node 0.12 support via "nan" (#7, @Xenoveritas)
+
 1.1.2 / 2014-07-28
 ==================
 
