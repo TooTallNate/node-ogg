@@ -47,7 +47,7 @@ class OggSyncWriteWorker : public NanAsyncWorker {
  public:
   OggSyncWriteWorker(ogg_sync_state *oy, char *buffer, long size,
     NanCallback *callback)
-    : oy(oy), buffer(buffer), size(size), rtn(0), NanAsyncWorker(callback) { }
+    : NanAsyncWorker(callback), oy(oy), buffer(buffer), size(size), rtn(0) { }
   ~OggSyncWriteWorker () { }
   void Execute() {
     char *localBuffer = ogg_sync_buffer(oy, size);
@@ -84,7 +84,7 @@ NAN_METHOD(node_ogg_sync_write) {
 class OggSyncPageoutWorker : public NanAsyncWorker {
  public:
   OggSyncPageoutWorker (ogg_sync_state *oy, ogg_page *page, NanCallback *callback)
-    : oy(oy), rtn(0), serialno(-1), packets(-1), page(page), NanAsyncWorker(callback)
+    : NanAsyncWorker(callback), oy(oy), page(page), serialno(-1), packets(-1), rtn(0)
     { }
   ~OggSyncPageoutWorker () { }
   void Execute () {
@@ -136,7 +136,7 @@ NAN_METHOD(node_ogg_stream_init) {
 class OggStreamPageinWorker : public NanAsyncWorker {
  public:
   OggStreamPageinWorker(ogg_stream_state *os, ogg_page *page, NanCallback *callback)
-    : os(os), page(page), rtn(0), NanAsyncWorker(callback) { }
+    : NanAsyncWorker(callback), os(os), page(page), rtn(0) { }
   void Execute () {
     rtn = ogg_stream_pagein(os, page);
   }
@@ -169,7 +169,7 @@ NAN_METHOD(node_ogg_stream_pagein) {
 class OggStreamPacketoutWorker : public NanAsyncWorker {
  public:
   OggStreamPacketoutWorker (ogg_stream_state *os, ogg_packet *packet, NanCallback *callback)
-    : os(os), packet(packet), rtn(0), NanAsyncWorker(callback) { }
+    : NanAsyncWorker(callback), os(os), packet(packet), rtn(0) { }
   ~OggStreamPacketoutWorker () { }
   void Execute () {
     rtn = ogg_stream_packetout(os, packet);
@@ -217,7 +217,7 @@ NAN_METHOD(node_ogg_stream_packetout) {
 class OggStreamPacketinWorker : public NanAsyncWorker {
  public:
   OggStreamPacketinWorker (ogg_stream_state *os, ogg_packet *packet, NanCallback *callback)
-    : os(os), packet(packet), rtn(0), NanAsyncWorker(callback) { }
+    : NanAsyncWorker(callback), os(os), packet(packet), rtn(0) { }
   ~OggStreamPacketinWorker () { }
   void Execute () {
     rtn = ogg_stream_packetin(os, packet);
