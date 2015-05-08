@@ -87,5 +87,7 @@ Please send pull requests for additional modules if you write one.
 | **Module**                       | **Decoder?** | **Encoder?**
 |:--------------------------------:|:------------:|:------------:
 |   [`node-vorbis`][node-vorbis]   |      ✓       |      ✓
+|   [`node-opus`][node-opus]       |      ✓       |      ✓
 
 [node-vorbis]: https://github.com/TooTallNate/node-vorbis
+[node-opus]: https://github.com/Rantanen/node-opus
