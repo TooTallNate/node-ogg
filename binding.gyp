@@ -20,6 +20,11 @@
           'libraries': [
             '-Wl,-force_load,<(module_root_dir)/build/$(BUILDTYPE)/ogg.a'
           ],
+          'xcode_settings': {
+            'OTHER_LDFLAGS': [
+              '-undefined dynamic_lookup'
+            ],
+          },
         }],
         ['OS=="win"', {
           # on Windows we have to use the ogg.def file to ensure that all the
