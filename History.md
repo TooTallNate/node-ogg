@@ -1,4 +1,11 @@
 
+1.2.1 / 2015-05-24
+==================
+
+  * binding: add "-undefined dynamic_lookup" flag on OS X
+  * Readme: add node-opus to encoders/decoders list
+  * config: add linux arm (raspberry pi) config
+
 1.2.0 / 2015-05-07
 ==================
 
