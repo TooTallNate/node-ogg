@@ -1,6 +1,6 @@
 {
   "name": "ogg",
-  "description": "NodeJS native binding to libogg",
+  "description": "Node.js native binding to libogg",
   "keywords": [
     "ogg",
     "libogg",
