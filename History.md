@@ -1,4 +1,13 @@
 
+1.2.2 / 2015-12-12
+==================
+
+  * travis: test io.js and node v4
+  * package: add "license" field
+  * package: update Node.js text
+  * package: update "nan" to v2.1.0
+  * package: update "debug" to v2
+
 1.2.1 / 2015-05-24
 ==================
 
