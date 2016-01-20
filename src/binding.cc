@@ -57,7 +57,7 @@ class OggSyncWriteWorker : public Nan::AsyncWorker {
   void HandleOKCallback () {
     Nan::HandleScope scope;
 
-    Handle<Value> argv[1] = { Nan::New<Integer>(rtn) };
+    v8::Local<Value> argv[1] = { Nan::New<Integer>(rtn) };
 
     callback->Call(1, argv);
   }
@@ -96,7 +96,7 @@ class OggSyncPageoutWorker : public Nan::AsyncWorker {
   void HandleOKCallback () {
     Nan::HandleScope scope;
 
-    Handle<Value> argv[3] = {
+    v8::Local<Value> argv[3] = {
       Nan::New<Integer>(rtn),
       Nan::New<Integer>(serialno),
       Nan::New<Integer>(packets)
@@ -141,7 +141,7 @@ class OggStreamPageinWorker : public Nan::AsyncWorker {
   void HandleOKCallback () {
     Nan::HandleScope scope;
 
-    Handle<Value> argv[1] = { Nan::New<Integer>(rtn) };
+    v8::Local<Value> argv[1] = { Nan::New<Integer>(rtn) };
 
     callback->Call(1, argv);
   }
@@ -174,7 +174,7 @@ class OggStreamPacketoutWorker : public Nan::AsyncWorker {
   void HandleOKCallback () {
     Nan::HandleScope scope;
 
-    Handle<Value> argv[6];
+    v8::Local<Value> argv[6];
     argv[0] = Nan::New<Integer>(rtn);
     if (rtn == 1) {
       argv[1] = Nan::New<Number>(packet->bytes);
@@ -221,7 +221,7 @@ class OggStreamPacketinWorker : public Nan::AsyncWorker {
   void HandleOKCallback () {
     Nan::HandleScope scope;
 
-    Handle<Value> argv[1] = { Nan::New<Integer>(rtn) };
+    v8::Local<Value> argv[1] = { Nan::New<Integer>(rtn) };
 
     callback->Call(1, argv);
   }
@@ -250,7 +250,7 @@ class StreamWorker : public Nan::AsyncWorker {
   void HandleOKCallback () {
     Nan::HandleScope scope;
 
-    Handle<Value> argv[4];
+    v8::Local<Value> argv[4];
     argv[0] = Nan::New<Integer>(rtn);
     if (rtn == 0) {
       /* need more data */
@@ -396,7 +396,7 @@ NAN_METHOD(node_ogg_packet_replace_buffer) {
 }
 
 
-void Initialize(Handle<Object> exports) {
+void Initialize(v8::Local<Object> exports) {
   Nan::HandleScope scope;
 
   /* sizeof's */
