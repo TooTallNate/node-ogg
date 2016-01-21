@@ -396,12 +396,12 @@ NAN_METHOD(node_ogg_packet_replace_buffer) {
 }
 
 
-void Initialize(v8::Local<Object> exports) {
+NAN_MODULE_INIT(Initialize) {
   Nan::HandleScope scope;
 
   /* sizeof's */
 #define SIZEOF(value) \
-  Nan::ForceSet(exports, Nan::New<String>("sizeof_" #value).ToLocalChecked(), \
+  Nan::ForceSet(target, Nan::New<String>("sizeof_" #value).ToLocalChecked(), \
       Nan::New<Integer>(static_cast<int32_t>(sizeof(value))), \
       static_cast<PropertyAttribute>(ReadOnly|DontDelete))
   SIZEOF(ogg_sync_state);
@@ -409,32 +409,32 @@ void Initialize(v8::Local<Object> exports) {
   SIZEOF(ogg_page);
   SIZEOF(ogg_packet);
 
-  Nan::SetMethod(exports, "ogg_sync_init", node_ogg_sync_init);
-  Nan::SetMethod(exports, "ogg_sync_write", node_ogg_sync_write);
-  Nan::SetMethod(exports, "ogg_sync_pageout", node_ogg_sync_pageout);
+  Nan::SetMethod(target, "ogg_sync_init", node_ogg_sync_init);
+  Nan::SetMethod(target, "ogg_sync_write", node_ogg_sync_write);
+  Nan::SetMethod(target, "ogg_sync_pageout", node_ogg_sync_pageout);
 
-  Nan::SetMethod(exports, "ogg_stream_init", node_ogg_stream_init);
-  Nan::SetMethod(exports, "ogg_stream_pagein", node_ogg_stream_pagein);
-  Nan::SetMethod(exports, "ogg_stream_packetout", node_ogg_stream_packetout);
-  Nan::SetMethod(exports, "ogg_stream_packetin", node_ogg_stream_packetin);
-  Nan::SetMethod(exports, "ogg_stream_pageout", node_ogg_stream_pageout);
-  Nan::SetMethod(exports, "ogg_stream_flush", node_ogg_stream_flush);
+  Nan::SetMethod(target, "ogg_stream_init", node_ogg_stream_init);
+  Nan::SetMethod(target, "ogg_stream_pagein", node_ogg_stream_pagein);
+  Nan::SetMethod(target, "ogg_stream_packetout", node_ogg_stream_packetout);
+  Nan::SetMethod(target, "ogg_stream_packetin", node_ogg_stream_packetin);
+  Nan::SetMethod(target, "ogg_stream_pageout", node_ogg_stream_pageout);
+  Nan::SetMethod(target, "ogg_stream_flush", node_ogg_stream_flush);
 
   /* custom functions */
-  Nan::SetMethod(exports, "ogg_page_to_buffer", node_ogg_page_to_buffer);
+  Nan::SetMethod(target, "ogg_page_to_buffer", node_ogg_page_to_buffer);
 
-  Nan::SetMethod(exports, "ogg_packet_set_packet", node_ogg_packet_set_packet);
-  Nan::SetMethod(exports, "ogg_packet_get_packet", node_ogg_packet_get_packet);
-  Nan::SetMethod(exports, "ogg_packet_bytes", node_ogg_packet_bytes);
-  Nan::SetMethod(exports, "ogg_packet_b_o_s", node_ogg_packet_b_o_s);
-  Nan::SetMethod(exports, "ogg_packet_e_o_s", node_ogg_packet_e_o_s);
-  Nan::SetMethod(exports, "ogg_packet_granulepos", node_ogg_packet_granulepos);
-  Nan::SetMethod(exports, "ogg_packet_packetno", node_ogg_packet_packetno);
-  Nan::Set(exports, Nan::New<String>("ogg_packet_replace_buffer").ToLocalChecked(),
+  Nan::SetMethod(target, "ogg_packet_set_packet", node_ogg_packet_set_packet);
+  Nan::SetMethod(target, "ogg_packet_get_packet", node_ogg_packet_get_packet);
+  Nan::SetMethod(target, "ogg_packet_bytes", node_ogg_packet_bytes);
+  Nan::SetMethod(target, "ogg_packet_b_o_s", node_ogg_packet_b_o_s);
+  Nan::SetMethod(target, "ogg_packet_e_o_s", node_ogg_packet_e_o_s);
+  Nan::SetMethod(target, "ogg_packet_granulepos", node_ogg_packet_granulepos);
+  Nan::SetMethod(target, "ogg_packet_packetno", node_ogg_packet_packetno);
+  Nan::Set(target, Nan::New<String>("ogg_packet_replace_buffer").ToLocalChecked(),
     Nan::New<FunctionTemplate>(node_ogg_packet_replace_buffer)->GetFunction());
 
 }
 
 } // nodeogg namespace
 
-NODE_MODULE(ogg, nodeogg::Initialize);
+NODE_MODULE(ogg, nodeogg::Initialize)
