@@ -1,3 +1,9 @@
+1.2.5 / 2016-07-07
+==================
+
+* [[`1590ebaab0`](https://github.com/TooTallNate/ogg/commit/1590ebaab0)] - Upgrade to nan v2.3.5 (lammas)
+* [[`76abd9c7db`](https://github.com/TooTallNate/ogg/commit/76abd9c7db)] - **travis**: don't test node v3 (Nathan Rajlich)
+* [[`57b77af6e5`](https://github.com/TooTallNate/ogg/commit/57b77af6e5)] - **README**: update Node.js name (Nathan Rajlich)
 
 1.2.4 / 2016-01-20
 ==================
