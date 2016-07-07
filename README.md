@@ -2,6 +2,8 @@ node-ogg
 ========
 ### Node.js native binding to libogg
 [![Build Status](https://travis-ci.org/TooTallNate/node-ogg.svg?branch=master)](https://travis-ci.org/TooTallNate/node-ogg)
+[![Build Status](https://ci.appveyor.com/api/projects/status/hoc58iw51lr5fdjg/branch/master?svg=true)](https://ci.appveyor.com/project/TooTallNate/node-ogg/branch/master)
+
 
 This module provides a Writable stream interface for decoding `ogg` files, and a
 Readable stream for encoding `ogg` files. `libogg` only provides the interfaces
