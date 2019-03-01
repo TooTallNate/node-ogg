@@ -1,3 +1,8 @@
+1.2.6 / 2019-03-01
+==================
+
+* [[`082c6d83f8`](https://github.com/TooTallNate/ogg/commit/082c6d83f8)] - Fixed afterPacketout() to retry recoverable warnings (brandonkirsch)
+
 1.2.5 / 2016-07-07
 ==================
 
