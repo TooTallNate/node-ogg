@@ -23,8 +23,8 @@
     "readable-stream": "1.0"
   },
   "devDependencies": {
-    "mocha": "*",
-    "ogg-packet": "1"
+    "mocha": "^3.5.3",
+    "ogg-packet": "^1.0.0"
   },
   "scripts": {
     "test": "mocha --reporter spec"
