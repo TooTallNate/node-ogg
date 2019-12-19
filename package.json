@@ -1,5 +1,5 @@
 {
-  "name": "ogg",
+  "name": "@suldashi/ogg",
   "description": "Node.js native binding to libogg. Updated to fix building in Node 12.",
   "keywords": [
     "ogg",
