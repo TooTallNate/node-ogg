@@ -1,6 +1,6 @@
 {
   "name": "ogg",
-  "description": "Node.js native binding to libogg.",
+  "description": "Node.js native binding to libogg. Updated to fix building in Node 12.",
   "keywords": [
     "ogg",
     "libogg",
