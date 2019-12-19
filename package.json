@@ -23,7 +23,7 @@
     "readable-stream": "1.0"
   },
   "devDependencies": {
-    "@suldashi/ogg-packet": "^1.0.2",
+    "@suldashi/ogg-packet": "^1.0.3",
     "mocha": "^6.2.2"
   },
   "scripts": {
