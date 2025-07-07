@@ -17,14 +17,11 @@
   },
   "main": "./index.js",
   "dependencies": {
-    "bindings": "~1.2.0",
-    "debug": "2",
-    "nan": "2",
-    "readable-stream": "1.0"
+    "bindings": "~1.5.0"
   },
   "devDependencies": {
-    "mocha": "^3.5.3",
-    "ogg-packet": "^1.0.0"
+    "mocha": "^11.7.1",
+    "ogg-packet": "^1.0.1"
   },
   "scripts": {
     "test": "mocha --reporter spec"

@@ -58,8 +58,8 @@ class OggSyncWriteWorker : public Nan::AsyncWorker {
     Nan::HandleScope scope;
 
     v8::Local<Value> argv[1] = { Nan::New<Integer>(rtn) };
-
-    callback->Call(1, argv);
+    Nan::AsyncResource resource("ogg:sync_write");
+    callback->Call(1, argv, &resource);
   }
  private:
   ogg_sync_state *oy;
@@ -73,7 +73,7 @@ NAN_METHOD(node_ogg_sync_write) {
 
   ogg_sync_state *oy = reinterpret_cast<ogg_sync_state *>(UnwrapPointer(info[0]));
   char *buffer = reinterpret_cast<char *>(UnwrapPointer(info[1]));
-  long size = static_cast<long>(info[2]->NumberValue());
+  long size = static_cast<long>(info[2]->NumberValue(v8::Isolate::GetCurrent()->GetCurrentContext()).ToChecked());
   Nan::Callback *callback = new Nan::Callback(info[3].As<Function>());
 
   Nan::AsyncQueueWorker(new OggSyncWriteWorker(oy, buffer, size, callback));
@@ -101,8 +101,8 @@ class OggSyncPageoutWorker : public Nan::AsyncWorker {
       Nan::New<Integer>(serialno),
       Nan::New<Integer>(packets)
     };
-
-    callback->Call(3, argv);
+    Nan::AsyncResource resource("ogg:sync_pageout");
+    callback->Call(3, argv, &resource);
   }
  private:
   ogg_sync_state *oy;
@@ -125,7 +125,7 @@ NAN_METHOD(node_ogg_sync_pageout) {
 NAN_METHOD(node_ogg_stream_init) {
   Nan::HandleScope scope;
   ogg_stream_state *os = reinterpret_cast<ogg_stream_state *>(UnwrapPointer(info[0]));
-  int serialno = static_cast<int>(info[1]->IntegerValue());
+  int serialno = static_cast<int>(info[1]->IntegerValue(v8::Isolate::GetCurrent()->GetCurrentContext()).ToChecked());
   info.GetReturnValue().Set(Nan::New<Integer>(ogg_stream_init(os, serialno)));
 }
 
@@ -142,8 +142,8 @@ class OggStreamPageinWorker : public Nan::AsyncWorker {
     Nan::HandleScope scope;
 
     v8::Local<Value> argv[1] = { Nan::New<Integer>(rtn) };
-
-    callback->Call(1, argv);
+    Nan::AsyncResource resource("ogg:stream_pagein");
+    callback->Call(1, argv, &resource);
   }
  private:
   ogg_stream_state *os;
@@ -189,8 +189,8 @@ class OggStreamPacketoutWorker : public Nan::AsyncWorker {
       argv[4] = Nan::Null();
       argv[5] = Nan::Null();
     }
-
-    callback->Call(6, argv);
+    Nan::AsyncResource resource("ogg:stream_packetout");
+    callback->Call(6, argv, &resource);
   }
  private:
   ogg_stream_state *os;
@@ -222,8 +222,8 @@ class OggStreamPacketinWorker : public Nan::AsyncWorker {
     Nan::HandleScope scope;
 
     v8::Local<Value> argv[1] = { Nan::New<Integer>(rtn) };
-
-    callback->Call(1, argv);
+    Nan::AsyncResource resource("ogg:stream_packetin");
+    callback->Call(1, argv, &resource);
   }
  private:
   ogg_stream_state *os;
@@ -263,8 +263,8 @@ class StreamWorker : public Nan::AsyncWorker {
       argv[2] = Nan::New<Number>(page->body_len);
       argv[3] = Nan::New<Integer>(ogg_page_eos(page));
     }
-
-    callback->Call(4, argv);
+    Nan::AsyncResource resource("ogg:stream_worker");
+    callback->Call(4, argv, &resource);
   }
  protected:
   ogg_stream_state *os;
@@ -401,9 +401,8 @@ NAN_MODULE_INIT(Initialize) {
 
   /* sizeof's */
 #define SIZEOF(value) \
-  Nan::ForceSet(target, Nan::New<String>("sizeof_" #value).ToLocalChecked(), \
-      Nan::New<Integer>(static_cast<int32_t>(sizeof(value))), \
-      static_cast<PropertyAttribute>(ReadOnly|DontDelete))
+  Nan::Set(target, Nan::New<String>("sizeof_" #value).ToLocalChecked(), \
+      Nan::New<Integer>(static_cast<int32_t>(sizeof(value))))
   SIZEOF(ogg_sync_state);
   SIZEOF(ogg_stream_state);
   SIZEOF(ogg_page);
@@ -431,10 +430,10 @@ NAN_MODULE_INIT(Initialize) {
   Nan::SetMethod(target, "ogg_packet_granulepos", node_ogg_packet_granulepos);
   Nan::SetMethod(target, "ogg_packet_packetno", node_ogg_packet_packetno);
   Nan::Set(target, Nan::New<String>("ogg_packet_replace_buffer").ToLocalChecked(),
-    Nan::New<FunctionTemplate>(node_ogg_packet_replace_buffer)->GetFunction());
+    Nan::New<FunctionTemplate>(node_ogg_packet_replace_buffer)->GetFunction(v8::Isolate::GetCurrent()->GetCurrentContext()).ToLocalChecked());
 
 }
 
 } // nodeogg namespace
 
-NODE_MODULE(ogg, nodeogg::Initialize)
+NODE_MODULE(NODE_GYP_MODULE_NAME, nodeogg::Initialize)
